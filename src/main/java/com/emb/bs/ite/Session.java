@@ -482,7 +482,9 @@ public class Session {
         availableFoods.addAll(foodPlaces);
 
         if (myHealth > 15) {
-            if(! wrappedMode) {
+            // in wrappedMode there are no corners... and in the first 5 turns we might pick
+            // up food that is around us...
+            if(turn > 5 && !wrappedMode) {
                 // food in CORNERS is TOXIC (but if we are already IN the corner we will
                 // take it!
                 if (!(myPos.x == 0 && myPos.y <= 1) || (myPos.x <= 1 && myPos.y == 0)) {
