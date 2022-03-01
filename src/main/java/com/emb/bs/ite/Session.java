@@ -1352,8 +1352,8 @@ public class Session {
                 + " goHazd? " + enterHazardZone
                 + (escapeFromBorder ? " GAWYBRD" : "")
                 + " goBorder? " + enterBorderZone
-                + " goDanger? " + enterDangerZone
                 + " maxDeep? " + MAXDEEP
+                + " goDanger? " + enterDangerZone
                 + " goNoGo? " + enterNoGoZone
                 + " {" + cmdChain.toString() + "}";
         if (isDoomed) {

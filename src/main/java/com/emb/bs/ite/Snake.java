@@ -509,34 +509,15 @@ public class Snake {
             // sEnterNoGoZone or sEnterDangerZone should avoided if possible... if we have
             // other alternatives...
 
-            // only keep the moves with the highest DEEP...
+            //1) only keep the moves with the highest DEEP...
             int maxDept = 0;
-            boolean goDanger = true;
-            boolean goNoGo = true;
             HashSet<MoveWithState> movesToRemove = new HashSet<>();
             for (MoveWithState aMove : possibleMoves) {
-                // this is not going to work, if we first have to NO-GO moves, and then the
-                // the 3'rd on is a better one...
-
-                /*if (goNoGo && !aMove.state.sEnterNoGoZone){
-                    goNoGo = false;
-                }else if(aMove.state.sEnterNoGoZone){
-                    movesToRemove.add(aMove);
-                }
-
-                if (goDanger && !aMove.state.sEnterDangerZone){
-                    goDanger = false;
-                }else if(aMove.state.sEnterDangerZone){
-                    movesToRemove.add(aMove);
-                }*/
-
                 int dept = aMove.state.sMAXDEEP;
                 Math.max(maxDept, dept);
                 if(dept < maxDept){
                     movesToRemove.add(aMove);
                 }
-
-
             }
             possibleMoves.removeAll(movesToRemove);
             if(possibleMoves.size() == 1){
@@ -544,10 +525,37 @@ public class Snake {
                 return possibleMoves.get(0).move;
             }
 
+            //2) remove all "toDangerous" moves (since we have better alternatives)
+            boolean keepGoDanger = true;
+            boolean keepGoNoGo = true;
+            for (MoveWithState aMove : possibleMoves) {
+                if (keepGoNoGo && !aMove.state.sEnterNoGoZone) {
+                    keepGoNoGo = false;
+                }
+                if (keepGoDanger && !aMove.state.sEnterDangerZone) {
+                    keepGoDanger = false;
+                }
+            }
+            for (MoveWithState aMove : possibleMoves) {
+                if (!keepGoNoGo && aMove.state.sEnterNoGoZone){
+                    movesToRemove.add(aMove);
+                }
+                if (!keepGoDanger && aMove.state.sEnterDangerZone){
+                    movesToRemove.add(aMove);
+                }
+            }
+            possibleMoves.removeAll(movesToRemove);
+
+            if(possibleMoves.size() == 1){
+                // ok only one option left - so let's use this...
+                return possibleMoves.get(0).move;
+            }
+
+            // 3) Manual additional risk calculation...
             // comparing RISK of "move" with alternative moves
             int minRisk = Integer.MAX_VALUE;
 
-            // we want our "first" item to be evaluated last...
+            // we want our "first" (the preferred) item to be evaluated last...
             Collections.reverse(possibleMoves);
 
             String lowestRiskMove = null;
@@ -584,6 +592,10 @@ public class Snake {
                         
                         // if this is not a move into a corner, we should check the distance from other snakes
                         // head's that are LONGER (or have the same length but can catch FOOD with the next move...
+
+                        // calculating the distance to all s.snakeNextMovePossibleLocations... (good to have an
+                        // array of all of them) - special handing, if 'snakeNextMovePossibleLocations' is also
+                        // a foodPosition! (then a snake tha is currently 1 times shorter becomes equal)
                     }
 
                     minRisk = Math.min(minRisk, aMoveRisk);
