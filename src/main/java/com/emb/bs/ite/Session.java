@@ -71,6 +71,21 @@ public class Session {
         boolean sEnterBorderZone = enterBorderZone;
         boolean sEnterDangerZone = enterDangerZone;
         boolean sEnterNoGoZone = enterNoGoZone;
+        int sMAXDEEP = MAXDEEP;
+
+        @Override
+        public String toString() {
+                return
+                      " st:" + getMoveIntAsString(state).substring(0, 2).toUpperCase() + "[" + sState + "]"
+                    + " ph:" + sTPhase
+                    + (sEscapeFromHazard ? " GETOUTHAZD" : "")
+                    + " goHazd? " + sEnterHazardZone
+                    + (sEscapeFromBorder ? " GAWYBRD" : "")
+                    + " maxDeep? " + sMAXDEEP
+                    + " goBorder? " + sEnterBorderZone
+                    + " goDanger? " + sEnterDangerZone
+                    + " goNoGo? " + sEnterNoGoZone;
+        }
     }
 
     SavedState saveState() {
@@ -80,10 +95,12 @@ public class Session {
     void restoreState(SavedState savedState) {
         state = savedState.sState;
         tPhase = savedState.sTPhase;
+
         escapeFromBorder = savedState.sEscapeFromBorder;
         escapeFromHazard = savedState.sEscapeFromHazard;
         enterHazardZone = savedState.sEnterHazardZone;
         enterBorderZone = savedState.sEnterBorderZone;
+        MAXDEEP = savedState.sMAXDEEP;
         enterDangerZone = savedState.sEnterDangerZone;
         enterNoGoZone = savedState.sEnterNoGoZone;
     }
@@ -353,7 +370,6 @@ public class Session {
                 return possibleFoodMove;
             } else {
                 restoreState(saveState);
-                MAXDEEP = myLen;
                 if (resetSaveBounds) {
                     // checkFoodMove() might set the MIN/MAX to the total bounds...
                     // this needs to be reset...
@@ -650,7 +666,6 @@ public class Session {
                     } else {
                         // there is probably more state stuff that need to be reset here...
                         restoreState(savedState);
-                        MAXDEEP = myLen;
 
                         LOG.info("TRY SECONDARY FOOD direction: "+getMoveIntAsString(lastSecondaryFoodDirection));
                         firstMoveToTry = lastSecondaryFoodDirection;

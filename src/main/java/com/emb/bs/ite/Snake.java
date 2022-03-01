@@ -8,9 +8,7 @@ import org.slf4j.LoggerFactory;
 import spark.Request;
 import spark.Response;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import static spark.Spark.port;
 import static spark.Spark.post;
@@ -177,6 +175,7 @@ public class Snake {
                 sessions.put(sessId, s);
                 LOG.warn(sessId+" WAS NOT FOUND - probably cause of SERVER-RESTART?! - JUST continue with default");
             }
+
             if(s != null) {
                 s.gameId = sessId;
                 String gameType = null;
@@ -185,11 +184,10 @@ public class Snake {
                 }
                 readCurrentBoardStatusIntoSession(moveRequest, gameType, s);
 
-                Session.SavedState savedState = s.saveState();
-                String move = calculateNextMove(s, false);
+                String move = calculateNextMoveOptions(s);
 
                 // check if this is a RISKY-Move... and if there are alternatives
-                if(!s.enterNoGoZone){
+                /*if(!s.enterNoGoZone){
                     if(s.enterDangerZone) {
                         LOG.info("CHECK FOR ALTERNATIVES for: "+move+" cause of ENTER-DANGER-ZONE");
                         s.MAXDEEP = s.myLen;
@@ -225,7 +223,7 @@ public class Snake {
                             move = getMoveWithLowestRiskFromAlternatives(s, move, altMoves);
                         }
                     }
-                }
+                }*/
 
                 if(move.equals(REPEATLAST)){
                     // OK we are DOOMED anyhow - so we can do what ever
@@ -252,7 +250,7 @@ public class Snake {
             }
         }
 
-        private String getMoveWithLowestRiskFromAlternatives(Session s, String move, ArrayList<String> altMoves) {
+        /*private String getMoveWithLowestRiskFromAlternatives(Session s, String move, ArrayList<String> altMoves) {
             // since we want to find the move with the lowest risk, we add the initial move
             // so we compare all risks
             altMoves.add(move);
@@ -296,7 +294,7 @@ public class Snake {
                 }
             }
             return move;
-        }
+        }*/
 
         private void readCurrentBoardStatusIntoSession(JsonNode moveRequest, String rulesetName, Session s) {
             s.turn = moveRequest.get("turn").asInt();
@@ -429,30 +427,172 @@ public class Snake {
                     ;
         }*/
 
-        private String calculateNextMove(Session s, boolean skipSpecialMoves) {
-            String move = null;
-            if(!skipSpecialMoves){
-                move = s.checkSpecialMoves();
+        private class MoveWithState {
+            String move;
+            Session.SavedState state;
+
+            public MoveWithState(String move, Session s) {
+                this.move = move;
+                state = s.saveState();
             }
-            if (move == null) {
-                switch (s.state) {
-                    case UP:
-                        move = s.moveUp();
-                        break;
-                    case RIGHT:
-                        move = s.moveRight();
-                        break;
-                    case DOWN:
-                        move = s.moveDown();
-                        break;
-                    case LEFT:
-                        move = s.moveLeft();
-                        break;
-                    default:
-                        move = Snake.D;
+
+            @Override
+            public boolean equals(Object obj) {
+                if(obj instanceof MoveWithState){
+                    return move.equals(((MoveWithState) obj).move);
+                }else {
+                    return super.equals(obj);
                 }
             }
-            return move;
+
+            @Override
+            public String toString() {
+                return move + " ["+state.toString()+"]";
+            }
+        }
+
+        private String calculateNextMoveOptions(Session s) {
+            String specialMove = s.checkSpecialMoves();
+            if(specialMove !=null){
+                return specialMove;
+            }
+
+            SortedSet<Integer> options = new TreeSet<Integer>();
+            // make sure that we check initially our preferred direction...
+            options.add(s.state);
+            options.add(UP);
+            options.add(RIGHT);
+            options.add(DOWN);
+            options.add(LEFT);
+
+            ArrayList<MoveWithState> possibleMoves = new ArrayList<>();
+            Session.SavedState startState = s.saveState();
+
+            for(int aDirection: options){
+                s.restoreState(startState);
+                s.cmdChain.clear();
+                MoveWithState move = null;
+                switch (aDirection) {
+                    case UP:
+                        move = new MoveWithState(s.moveUp(), s);
+                        break;
+                    case RIGHT:
+                        move = new MoveWithState(s.moveRight(), s);
+                        break;
+                    case DOWN:
+                        move = new MoveWithState(s.moveDown(), s);
+                        break;
+                    case LEFT:
+                        move = new MoveWithState(s.moveLeft(), s);
+                        break;
+                }
+                if(move != null && !possibleMoves.contains(move)){
+                    possibleMoves.add(move);
+                }
+            }
+
+            if(possibleMoves.size() == 1){
+                return possibleMoves.get(0).move;
+            }else{
+                return getBestMove(possibleMoves, s);
+            }
+        }
+
+        private String getBestMove(ArrayList<MoveWithState> possibleMoves, Session s) {
+            // ok we have plenty of alternative moves...
+            // we should check, WHICH of them is the most promising...
+            LOG.info("MOVE LIST: "+ possibleMoves);
+
+            //return possibleMoves.get(0).move;
+
+            // TODO - order moves by RISK-LEVEL!
+            // sEnterNoGoZone or sEnterDangerZone should avoided if possible... if we have
+            // other alternatives...
+
+            // only keep the moves with the highest DEEP...
+            int maxDept = 0;
+            boolean goDanger = true;
+            boolean goNoGo = true;
+            HashSet<MoveWithState> movesToRemove = new HashSet<>();
+            for (MoveWithState aMove : possibleMoves) {
+                // this is not going to work, if we first have to NO-GO moves, and then the
+                // the 3'rd on is a better one...
+
+                /*if (goNoGo && !aMove.state.sEnterNoGoZone){
+                    goNoGo = false;
+                }else if(aMove.state.sEnterNoGoZone){
+                    movesToRemove.add(aMove);
+                }
+
+                if (goDanger && !aMove.state.sEnterDangerZone){
+                    goDanger = false;
+                }else if(aMove.state.sEnterDangerZone){
+                    movesToRemove.add(aMove);
+                }*/
+
+                int dept = aMove.state.sMAXDEEP;
+                Math.max(maxDept, dept);
+                if(dept < maxDept){
+                    movesToRemove.add(aMove);
+                }
+
+
+            }
+            possibleMoves.removeAll(movesToRemove);
+            if(possibleMoves.size() == 1){
+                // ok only one option left - so let's use this...
+                return possibleMoves.get(0).move;
+            }
+
+            // comparing RISK of "move" with alternative moves
+            int minRisk = Integer.MAX_VALUE;
+
+            // we want our "first" item to be evaluated last...
+            Collections.reverse(possibleMoves);
+
+            String lowestRiskMove = null;
+
+            for (MoveWithState aMove : possibleMoves) {
+                Point resultingPos = null;
+                switch (aMove.move) {
+                    case U:
+                        resultingPos = s.getNewPointForDirection(s.myPos, UP);
+                        break;
+                    case R:
+                        resultingPos = s.getNewPointForDirection(s.myPos, RIGHT);
+                        break;
+                    case D:
+                        resultingPos = s.getNewPointForDirection(s.myPos, DOWN);
+                        break;
+                    case L:
+                        resultingPos = s.getNewPointForDirection(s.myPos, LEFT);
+                        break;
+                }
+
+                if (resultingPos != null) {
+                    // checking if we are under direct threat
+                    int aMoveRisk = s.snakeNextMovePossibleLocations[resultingPos.y][resultingPos.x];
+                    if (aMoveRisk == 0 && !s.wrappedMode) {
+                        // ok no other snake is here in the area - but if we are a move to the BORDER
+                        // then consider this move as a more risk move...
+                        if (resultingPos.y == 0 || resultingPos.y == s.Y - 1) {
+                            aMoveRisk++;
+                        }
+                        if (resultingPos.x == 0 || resultingPos.x == s.X - 1) {
+                            aMoveRisk++;
+                        }
+                        
+                        // if this is not a move into a corner, we should check the distance from other snakes
+                        // head's that are LONGER (or have the same length but can catch FOOD with the next move...
+                    }
+
+                    minRisk = Math.min(minRisk, aMoveRisk);
+                    if (aMoveRisk == minRisk) {
+                        lowestRiskMove = aMove.move;
+                    }
+                }
+            }
+            return  lowestRiskMove;
         }
 
         /**

@@ -100,13 +100,22 @@ public class SnakeTest {
 
     @Test
     void replayGameWithId() throws Exception{
-        String gameId= "4ae871cc-fd2b-43c1-a5e4-b4c34ac0e6b1";
-        int turn = 389;
+
+        // THIS is a GAME where @ move 81 I should try to get away from other snake heads
+        // https://play.battlesnake.com/g/8d9706c0-71cd-49a2-a823-d1a81bd2be67/
+        //String gameId= "8d9706c0-71cd-49a2-a823-d1a81bd2be67";
+
+        // here from move 35 we have to make better decisions... MOVE away from
+        // other snake heads + MOVE AWAY from Borders!
+        // d6f67061-26e2-4f79-be24-e18ab6141916
+
+        String gameId = "e94078e6-fc75-4c9a-9e94-bc1f31563e8a"; // ENDLESS-LOOP
+        int turn = 81;
 
         String yourNameIdentifier = "lender";
         //String gameMode = null;
-        String gameMode = "wrapped";
-        //String gameMode = "royale";
+        //String gameMode = "wrapped";
+        String gameMode = "royale";
         int Y = 11;
         int X = 11;
 
