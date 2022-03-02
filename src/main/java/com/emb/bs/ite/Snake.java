@@ -470,25 +470,23 @@ public class Snake {
 
             for(int aDirection: options){
                 s.restoreState(startState);
-                s.cmdChain.clear();
                 MoveWithState move = null;
-                switch (aDirection) {
-                    case UP:
-                        move = new MoveWithState(s.moveUp(), s);
-                        break;
-                    case RIGHT:
-                        move = new MoveWithState(s.moveRight(), s);
-                        break;
-                    case DOWN:
-                        move = new MoveWithState(s.moveDown(), s);
-                        break;
-                    case LEFT:
-                        move = new MoveWithState(s.moveLeft(), s);
-                        break;
-                }
-                if(move != null && !possibleMoves.contains(move)){
+
+                String key = s.getMoveIntAsString(aDirection);
+                LOG.info("CHECKING " + key+"...");
+                String moveResult = s.moveDirection(aDirection, null);
+                if(moveResult !=null && !moveResult.equals(REPEATLAST)) {
+                    move = new MoveWithState(moveResult, s);
                     possibleMoves.add(move);
+                    LOG.info("EVALUATED " + key + " with RESULT: " + move.move);
                 }
+            }
+
+            if(possibleMoves.size() == 0){
+                s.doomed = true;
+                // TODO Later - check, if any of the moves
+                // make still some sense?! [but I don't think so]
+                return Snake.REPEATLAST;
             }
 
             if(possibleMoves.size() == 1){
@@ -502,8 +500,6 @@ public class Snake {
             // ok we have plenty of alternative moves...
             // we should check, WHICH of them is the most promising...
             LOG.info("MOVE LIST: "+ possibleMoves);
-
-            //return possibleMoves.get(0).move;
 
             // TODO - order moves by RISK-LEVEL!
             // sEnterNoGoZone or sEnterDangerZone should avoided if possible... if we have
@@ -519,13 +515,15 @@ public class Snake {
                     movesToRemove.add(aMove);
                 }
             }
-            possibleMoves.removeAll(movesToRemove);
+            if(movesToRemove.size() >0) {
+                possibleMoves.removeAll(movesToRemove);
+            }
             if(possibleMoves.size() == 1){
                 // ok only one option left - so let's use this...
                 return possibleMoves.get(0).move;
             }
 
-            //2) remove all "toDangerous" moves (since we have better alternatives)
+            //2) remove all "toDangerous" moves (when we have better alternatives)
             boolean keepGoDanger = true;
             boolean keepGoNoGo = true;
             for (MoveWithState aMove : possibleMoves) {
@@ -544,7 +542,9 @@ public class Snake {
                     movesToRemove.add(aMove);
                 }
             }
-            possibleMoves.removeAll(movesToRemove);
+            if(movesToRemove.size() >0) {
+                possibleMoves.removeAll(movesToRemove);
+            }
 
             if(possibleMoves.size() == 1){
                 // ok only one option left - so let's use this...

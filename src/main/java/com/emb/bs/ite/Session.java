@@ -142,6 +142,9 @@ public class Session {
         maxOtherSnakeLen = 0;
 
         myBody = new int[Y][X];
+
+        //TODO: MAXDEEP can be myLen-1 IF THERE IS NO FODD in front of us
+        // really???
         MAXDEEP = myLen;//Math.min(len, 20);
 
         goForFood = false;
@@ -253,6 +256,81 @@ public class Session {
             // there is no hazard  so we can skip the check in the array...
             enterHazardZone = true;
         }
+    }
+
+    private class RiskState {
+        boolean endReached = false;
+        boolean retry = true;
+
+        private void next(){
+            retry = true;
+            if (escapeFromBorder) {
+                LOG.info("deactivate ESCAPE-FROM-BORDER");
+                escapeFromBorder = false;
+            } else if(escapeFromHazard){
+                LOG.info("deactivate ESCAPE-FROM-HAZARD");
+                escapeFromHazard = false;
+            } else if (!enterBorderZone) {
+                LOG.info("activate now GO-TO-BORDERS");
+                enterBorderZone = true;
+                setFullBoardBounds();
+            } else if (!enterHazardZone) {
+                LOG.info("activate now GO-TO-HAZARD");
+                enterHazardZone = true;
+            } else if(MAXDEEP > 1){
+                LOG.info("activate MAXDEEP TO: "+MAXDEEP);
+                MAXDEEP--;
+            } else if (!enterDangerZone) {
+                LOG.info("activate now GO-TO-DANGER-ZONE");
+                enterDangerZone = true;
+            } else if (!enterNoGoZone) {
+                LOG.info("activate now GO-TO-NO-GO-ZONE");
+                enterNoGoZone = true;
+            } else {
+                LOG.info("NO-WAY-TO-MOVE");
+                endReached = true;
+                retry = false;
+            }
+        }
+    }
+
+    public String moveDirection(int move, RiskState risk) {
+
+        String moveAsString = getMoveIntAsString(move);
+        if(risk == null){
+            risk = new RiskState();
+        }else{
+            risk.next();
+        }
+        if (risk.endReached) {
+            return Snake.REPEATLAST;
+        } else if (risk.retry) {
+            logState(moveAsString);
+            boolean canMove = false;
+
+            switch (move){
+                case Snake.UP:
+                    canMove = canMoveUp();
+                    break;
+                case Snake.RIGHT:
+                    canMove = canMoveRight();
+                    break;
+                case Snake.DOWN:
+                    canMove = canMoveDown();
+                    break;
+                case Snake.LEFT:
+                    canMove = canMoveLeft();
+                    break;
+            }
+            if (canMove) {
+                LOG.debug(moveAsString+": YES");
+                return moveAsString;
+            }else{
+                LOG.debug(moveAsString+": NO");
+                return moveDirection(move, risk);
+            }
+        }
+        return null;
     }
 
     private class DoomedCheckReply{
@@ -1367,7 +1445,7 @@ public class Session {
         }
     }
 
-    private String getMoveIntAsString(int move) {
+    String getMoveIntAsString(int move) {
         switch (move) {
             case Snake.UP:
                 return Snake.U;
