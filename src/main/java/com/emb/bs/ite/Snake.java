@@ -312,7 +312,7 @@ public class Snake {
 
             JsonNode head = you.get("head");
             s.myPos = new Point(head);
-            // adding also myHead to the boddy array (to allow
+            // adding also myHead to the body array (to allow
             // simple NoGoZone-Detection
             s.myBody[s.myPos.y][s.myPos.x] = s.myLen;
 
@@ -468,24 +468,24 @@ public class Snake {
             ArrayList<MoveWithState> possibleMoves = new ArrayList<>();
             Session.SavedState startState = s.saveState();
 
-            for(int aDirection: options){
+            for(int possibleDirection: options){
                 s.restoreState(startState);
-                MoveWithState move = null;
 
-                String key = s.getMoveIntAsString(aDirection);
-                LOG.info("CHECKING " + key+"...");
-                String moveResult = s.moveDirection(aDirection, null);
+                // ok checking the next direction...
+                String moveResult = s.moveDirection(possibleDirection, null);
                 if(moveResult !=null && !moveResult.equals(REPEATLAST)) {
-                    move = new MoveWithState(moveResult, s);
+                    MoveWithState move = new MoveWithState(moveResult, s);
                     possibleMoves.add(move);
-                    LOG.info("EVALUATED " + key + " with RESULT: " + move.move);
+                    LOG.info("EVALUATED WE can MOVE: " + move);
                 }
             }
 
             if(possibleMoves.size() == 0){
                 s.doomed = true;
-                // TODO Later - check, if any of the moves
-                // make still some sense?! [but I don't think so]
+                // TODO Later - check, if any of the moves make still some sense?! [but I don't think so]
+                LOG.error("***********************");
+                LOG.error("DOOMED!");
+                LOG.error("***********************");
                 return Snake.REPEATLAST;
             }
 
@@ -510,7 +510,7 @@ public class Snake {
             HashSet<MoveWithState> movesToRemove = new HashSet<>();
             for (MoveWithState aMove : possibleMoves) {
                 int dept = aMove.state.sMAXDEEP;
-                Math.max(maxDept, dept);
+                maxDept = Math.max(maxDept, dept);
                 if(dept < maxDept){
                     movesToRemove.add(aMove);
                 }
@@ -581,6 +581,9 @@ public class Snake {
                     // checking if we are under direct threat
                     int aMoveRisk = s.snakeNextMovePossibleLocations[resultingPos.y][resultingPos.x];
                     if (aMoveRisk == 0 && !s.wrappedMode) {
+
+                        // TODO: not only the BORDER - also the MIN/MAX can be not so smart...
+
                         // ok no other snake is here in the area - but if we are a move to the BORDER
                         // then consider this move as a more risk move...
                         if (resultingPos.y == 0 || resultingPos.y == s.Y - 1) {

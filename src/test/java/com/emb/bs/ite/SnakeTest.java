@@ -109,13 +109,18 @@ public class SnakeTest {
         // other snake heads + MOVE AWAY from Borders!
         // d6f67061-26e2-4f79-be24-e18ab6141916
 
-        String gameId = "e94078e6-fc75-4c9a-9e94-bc1f31563e8a"; // ENDLESS-LOOP
-        int turn = 81;
+        // here we move up at 621 (to get food) - but this will end in a DOOMED state
+        // IMPLEMENT - FOOD/KILL moves have to also consider alternative moves [and
+        // skip if they will be fatal]
+        // ebc6ac78-21fa-4955-8b95-60b4ad3d684a
+
+        String gameId = "e21de12a-db93-4f3a-a049-25519b3a89f7";
+        int turn = 631;
 
         String yourNameIdentifier = "lender";
-        //String gameMode = null;
+        String gameMode = null;
         //String gameMode = "wrapped";
-        String gameMode = "royale";
+        //String gameMode = "royale";
         int Y = 11;
         int X = 11;
 
