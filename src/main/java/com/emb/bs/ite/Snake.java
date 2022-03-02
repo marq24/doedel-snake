@@ -421,6 +421,14 @@ public class Snake {
 
             SortedSet<Integer> options = new TreeSet<Integer>();
             // make sure that we check initially our preferred direction...
+            if(s.foodGoForIt) {
+                if (s.mFoodPrimaryDirection != -1) {
+                    options.add(s.mFoodPrimaryDirection);
+                }
+                if (s.mFoodSecondaryDirection != -1) {
+                    options.add(s.mFoodSecondaryDirection);
+                }
+            }
             options.add(s.state);
             options.add(UP);
             options.add(RIGHT);

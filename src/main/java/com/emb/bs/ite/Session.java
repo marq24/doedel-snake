@@ -381,6 +381,9 @@ public class Session {
             // ok we need to start to fetch FOOD!
             // we should move into the direction of the next FOOD! (setting our preferred direction)
             checkFoodMoves();
+        }else{
+            // need to reset all food parameters...
+            resetFoodStatus();
         }
         return killMoves;
     }
@@ -558,7 +561,12 @@ public class Session {
                 }
             }
             if (!enterBorderZone || escapeFromBorder) {
-                if(goFullBorder || turn < 50 || myLen < 15 || myLen - 1 < maxOtherSnakeLen || isLocatedAtBorder(closestFood)){
+                // 1) when GoHazard triggered...
+                // 2) for the first 30 turns we can stay on border...
+                // 3) when our length is smaller than 15
+                // 4) when we are one smaller than the largest other
+                // 5) when the food we want to fetch is at BORDER
+                if(goFullBorder || turn < 30 || myLen < 15 || myLen - 1 < maxOtherSnakeLen || isLocatedAtBorder(closestFood)){
                     foodFetchConditionGoBorder = true;
                 }
             }
@@ -569,14 +577,17 @@ public class Session {
                 LOG.info("TRY TO GET FOOD: at: " + closestFood + " moving: " + getMoveIntAsString(mFoodPrimaryDirection));
             }
         } else {
-            foodGoForIt = false;
-            foodFetchConditionGoHazard = false;
-            foodFetchConditionGoBorder = false;
-            foodActive = null;
-            mFoodPrimaryDirection = -1;
-            mFoodSecondaryDirection = -1;
+            resetFoodStatus();
             LOG.info("NO NEARBY FOOD FOUND minDist:" + minDist + " x:" + (X / 3) + "+y:" + (Y / 3) + "=" + ((X / 3) + (Y / 3)));
         }
+    }
+    private void resetFoodStatus() {
+        foodGoForIt = false;
+        foodFetchConditionGoHazard = false;
+        foodFetchConditionGoBorder = false;
+        foodActive = null;
+        mFoodPrimaryDirection = -1;
+        mFoodSecondaryDirection = -1;
     }
 
     private int getFoodDistance(Point food, Point other){
@@ -877,7 +888,6 @@ public class Session {
 
     void logState(String msg, Logger LOG) {
         msg = msg
-                + " "+gameId
                 + " Tn:" + turn
                 + " st:" + getMoveIntAsString(state).substring(0, 2).toUpperCase() + "[" + state + "]"
                 + " ph:" + tPhase
@@ -887,7 +897,8 @@ public class Session {
                 + " goBorder? " + enterBorderZone
                 + " maxDeep? " + MAXDEEP
                 + " goDanger? " + enterDangerZone
-                + " goNoGo? " + enterNoGoZone;
+                + " goNoGo? " + enterNoGoZone
+                + " "+gameId;
         LOG.info(msg);
     }
 
