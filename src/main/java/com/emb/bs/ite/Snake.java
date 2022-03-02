@@ -186,45 +186,6 @@ public class Snake {
 
                 String move = calculateNextMoveOptions(s);
 
-                // check if this is a RISKY-Move... and if there are alternatives
-                /*if(!s.enterNoGoZone){
-                    if(s.enterDangerZone) {
-                        LOG.info("CHECK FOR ALTERNATIVES for: "+move+" cause of ENTER-DANGER-ZONE");
-                        s.MAXDEEP = s.myLen;
-                        ArrayList<String> altMoves = new ArrayList<>();
-                        while(!s.enterNoGoZone && s.cmdChain.size() < 4){
-                            s.restoreSimpleState(savedState);
-                            String aAltMove = calculateNextMove(s, true);
-                            if(!s.enterNoGoZone && !aAltMove.equals(move) && !altMoves.contains(aAltMove)){
-                                LOG.info("FOUND an ALTERNATIVE "+aAltMove);
-                                altMoves.add(aAltMove);
-                            }
-                        }
-                        if(altMoves.size() == 0){
-                            LOG.info("MOVE INTO DANGER-ZONE is alternativlos");
-                        } else {
-                            move = getMoveWithLowestRiskFromAlternatives(s, move, altMoves);
-                        }
-                    } else if(s.MAXDEEP < s.myLen){
-                        LOG.info("CHECK FOR ALTERNATIVES for: "+move+" cause of MAXDEEP: "+s.MAXDEEP+" < len: "+s.myLen);
-                        int minDeep = s.MAXDEEP;
-                        ArrayList<String> altMoves = new ArrayList<>();
-                        while(!s.enterDangerZone && s.MAXDEEP >= minDeep && s.cmdChain.size() < 4){
-                            s.restoreSimpleState(savedState);
-                            String aAltMove = calculateNextMove(s, true);
-                            if(!s.enterDangerZone && s.MAXDEEP >= minDeep && !aAltMove.equals(move) && !altMoves.contains(aAltMove)){
-                                LOG.info("FOUND an ALTERNATIVE "+aAltMove);
-                                altMoves.add(aAltMove);
-                            }
-                        }
-                        if(altMoves.size() == 0){
-                            LOG.info("MOVE INTO "+minDeep+" ZONE is alternativlos");
-                        }else{
-                            move = getMoveWithLowestRiskFromAlternatives(s, move, altMoves);
-                        }
-                    }
-                }*/
-
                 if(move.equals(REPEATLAST)){
                     // OK we are DOOMED anyhow - so we can do what ever
                     // we want -> so we just repeat the last move...
@@ -237,7 +198,7 @@ public class Snake {
                     s.LASTMOVE = move;
                 }
 
-                s.logState("=> RESULTING MOVE: "+move, false, LOG);
+                s.logState("=> RESULTING MOVE: "+move, LOG);
                 Map<String, String> response = new HashMap<>();
                 response.put("move", move);
                 return response;
@@ -352,7 +313,7 @@ public class Snake {
                     int newYUp = -1;
                     int newXLeft = -1;
                     int newXRight = -1;
-                    if(s.wrappedMode){
+                    if(s.mWrappedMode){
                         newYDown = (h.y - 1 + s.Y) % s.Y;
                         newYUp = (h.y + 1) % s.Y;
                         newXLeft = (h.x - 1 + s.X) % s.X;
@@ -416,31 +377,31 @@ public class Snake {
             // after we have read all positions/Objects we might to additionally init the current
             // session status...
             s.initSessionAfterFullBoardRead(haz != null);
-            s.logState("MOVE CALLED", false, LOG);
-            s.logBoard();
+            s.logState("MOVE CALLED", LOG);
+            s.logBoard(LOG);
         }
-
-        /*private boolean checkFoF(String fof) {
-            return  fof.indexOf("tatos") > -1
-                    || fof.indexOf("sr2") > -1
-                    || fof.indexOf("paranoidba") > -1
-                    ;
-        }*/
 
         private class MoveWithState {
             String move;
             Session.SavedState state;
 
+            public MoveWithState(String move) {
+                this.move = move;
+            }
             public MoveWithState(String move, Session s) {
                 this.move = move;
-                state = s.saveState();
+                if(s!=null) {
+                    state = s.saveState();
+                }
             }
 
             @Override
             public boolean equals(Object obj) {
                 if(obj instanceof MoveWithState){
                     return move.equals(((MoveWithState) obj).move);
-                }else {
+                }else if(obj instanceof String) {
+                    return move.equals(obj);
+                }else{
                     return super.equals(obj);
                 }
             }
@@ -452,10 +413,11 @@ public class Snake {
         }
 
         private String calculateNextMoveOptions(Session s) {
-            String specialMove = s.checkSpecialMoves();
-            if(specialMove !=null){
-                return specialMove;
-            }
+            int[] bounds = new int[]{s.yMin, s.xMin, s.yMax, s.xMax};
+            // checkSpecialMoves will also activate the 'goForFood' flag - so if this flag is set
+            // we hat a primary and secondary direction in which we should move in order to find/get
+            // food...
+            List<Integer> killMoves = s.checkSpecialMoves();
 
             SortedSet<Integer> options = new TreeSet<Integer>();
             // make sure that we check initially our preferred direction...
@@ -467,16 +429,37 @@ public class Snake {
 
             ArrayList<MoveWithState> possibleMoves = new ArrayList<>();
             Session.SavedState startState = s.saveState();
-
+            boolean needToResetBounds = false;
             for(int possibleDirection: options){
                 s.restoreState(startState);
+                if(needToResetBounds) {
+                    s.restoreBoardBounds(bounds);
+                    needToResetBounds = false;
+                }
 
+                if(possibleDirection == s.mFoodPrimaryDirection || possibleDirection == s.mFoodSecondaryDirection){
+                    // So depending on the situation we want to take more risks in order to
+                    // get FOOD - but this Extra risk should be ONLY applied when making a
+                    // food move!
+                    if(s.foodFetchConditionGoHazard){
+                        s.escapeFromHazard = false;
+                        s.enterHazardZone = true;
+                    }
+                    if(s.foodFetchConditionGoBorder){
+                        s.escapeFromBorder = false;
+                        s.enterBorderZone = true;
+                        s.setFullBoardBounds();
+                        needToResetBounds = true;
+                    }
+                }
                 // ok checking the next direction...
                 String moveResult = s.moveDirection(possibleDirection, null);
                 if(moveResult !=null && !moveResult.equals(REPEATLAST)) {
                     MoveWithState move = new MoveWithState(moveResult, s);
                     possibleMoves.add(move);
                     LOG.info("EVALUATED WE can MOVE: " + move);
+                }else{
+                    LOG.info("EVALUATED WE can NOT MOVE: " + s.getMoveIntAsString(possibleDirection));
                 }
             }
 
@@ -499,7 +482,6 @@ public class Snake {
         private String getBestMove(ArrayList<MoveWithState> possibleMoves, Session s) {
             // ok we have plenty of alternative moves...
             // we should check, WHICH of them is the most promising...
-            LOG.info("MOVE LIST: "+ possibleMoves);
 
             // TODO - order moves by RISK-LEVEL!
             // sEnterNoGoZone or sEnterDangerZone should avoided if possible... if we have
@@ -511,10 +493,14 @@ public class Snake {
             for (MoveWithState aMove : possibleMoves) {
                 int dept = aMove.state.sMAXDEEP;
                 maxDept = Math.max(maxDept, dept);
-                if(dept < maxDept){
+            }
+            for (MoveWithState aMove : possibleMoves) {
+                int dept = aMove.state.sMAXDEEP;
+                if (dept < maxDept) {
                     movesToRemove.add(aMove);
                 }
             }
+
             if(movesToRemove.size() >0) {
                 possibleMoves.removeAll(movesToRemove);
             }
@@ -551,6 +537,26 @@ public class Snake {
                 return possibleMoves.get(0).move;
             }
 
+            if(s.mFoodPrimaryDirection != -1 && s.mFoodSecondaryDirection != -1){
+                // TODO: decide for the better FOOD move...
+                // checking if primary or secondary FOOD direction is possible
+                // selecting the MOVE with less RISK (if there is one with)
+                // avoid from border we can do so...
+                String keyPrimary = s.getMoveIntAsString(s.mFoodPrimaryDirection);
+                if (possibleMoves.contains(new MoveWithState(keyPrimary))) {
+                    return keyPrimary;
+                }
+                String keySecondary = s.getMoveIntAsString(s.mFoodSecondaryDirection);
+                if (possibleMoves.contains(new MoveWithState(keySecondary))) {
+                    return keySecondary;
+                }
+            } else if(s.mFoodPrimaryDirection != -1) {
+                String keyP = s.getMoveIntAsString(s.mFoodPrimaryDirection);
+                if (possibleMoves.contains(new MoveWithState(keyP))) {
+                    return keyP;
+                }
+            }
+
             // 3) Manual additional risk calculation...
             // comparing RISK of "move" with alternative moves
             int minRisk = Integer.MAX_VALUE;
@@ -580,7 +586,7 @@ public class Snake {
                 if (resultingPos != null) {
                     // checking if we are under direct threat
                     int aMoveRisk = s.snakeNextMovePossibleLocations[resultingPos.y][resultingPos.x];
-                    if (aMoveRisk == 0 && !s.wrappedMode) {
+                    if (aMoveRisk == 0 && !s.mWrappedMode) {
 
                         // TODO: not only the BORDER - also the MIN/MAX can be not so smart...
 

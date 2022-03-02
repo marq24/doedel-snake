@@ -1,6 +1,7 @@
 package com.emb.bs.ite;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.TreeMap;
 
 import org.slf4j.Logger;
@@ -18,49 +19,48 @@ public class Session {
     // stateful stuff
     int tPhase = 0;
     int state = 0;
-    int lastUsedFoodDirection = -1;
-    int lastSecondaryFoodDirection = -1;
+    int mFoodPrimaryDirection = -1;
+    int mFoodSecondaryDirection = -1;
+
+    Point foodActive = null;
+    boolean foodGoForIt = false;
+    boolean foodFetchConditionGoHazard = false;
+    boolean foodFetchConditionGoBorder = false;
+
     String LASTMOVE = null;
 
     Point myPos;
     int myLen;
     int myHealth;
 
-    int MAXDEEP = 0;
-    ArrayList<Integer> cmdChain = null;
-    int firstMoveToTry = -1;
-
     int X = -1;
     int Y = -1;
+    int xMin, yMin, xMax, yMax;
+
     boolean doomed = false;
     ArrayList<Point> snakeHeads = null;
     int[][] snakeBodies = null;
     int[][] snakeNextMovePossibleLocations = null;
     int maxOtherSnakeLen = 0;
     int[][] myBody = null;
-
-    private boolean goForFood = false;
+    int[][] hazardZone = null;
     ArrayList<Point> foodPlaces = null;
 
-
-    int[][] hazardZone = null;
-    //ArrayList<Point> hazardNearbyPlaces = null;
-
-    private boolean enterHazardZone = false;
-    private boolean enterBorderZone = false;
+    int MAXDEEP = 0;
+    boolean enterHazardZone = false;
+    boolean enterBorderZone = false;
     boolean enterDangerZone = false;
     boolean enterNoGoZone = false;
 
     boolean escapeFromBorder = false;
     boolean escapeFromHazard = false;
 
-    private int xMin, yMin, xMax, yMax;
 
     boolean hungerMode = true;
-    Point activeFood = null;
 
-    boolean wrappedMode = false;
-    boolean royaleMode = false;
+    boolean mWrappedMode = false;
+    boolean mRoyaleMode = false;
+    boolean mHazardPresent = false;
 
     class SavedState {
         int sState = state;
@@ -79,7 +79,7 @@ public class Session {
                       " st:" + getMoveIntAsString(state).substring(0, 2).toUpperCase() + "[" + sState + "]"
                     + " ph:" + sTPhase
                     + (sEscapeFromHazard ? " GETOUTHAZD" : "")
-                    + " goHazd? " + sEnterHazardZone
+                    + (mHazardPresent ? " goHazd? " + sEnterHazardZone : "")
                     + (sEscapeFromBorder ? " GAWYBRD" : "")
                     + " maxDeep? " + sMAXDEEP
                     + " goBorder? " + sEnterBorderZone
@@ -110,11 +110,18 @@ public class Session {
         tPhase = savedState.sTPhase;
     }
 
-    private void setFullBoardBounds() {
+    public void setFullBoardBounds() {
         yMin = 0;
         xMin = 0;
         yMax = Y - 1;
         xMax = X - 1;
+    }
+
+    public void restoreBoardBounds(int[] prevBounds) {
+        yMin = prevBounds[0];
+        xMin = prevBounds[1];
+        yMax = prevBounds[2];
+        xMax = prevBounds[3];
     }
 
     private void initSaveBoardBounds() {
@@ -133,8 +140,10 @@ public class Session {
         X = width;
         initSaveBoardBounds();
         doomed = false;
-        firstMoveToTry = -1;
-        cmdChain = new ArrayList<>();
+        mHazardPresent = false;
+
+        //firstMoveToTry = -1;
+        //cmdChain = new ArrayList<>();
 
         snakeHeads = new ArrayList<>();
         snakeBodies = new int[Y][X];
@@ -143,11 +152,14 @@ public class Session {
 
         myBody = new int[Y][X];
 
-        //TODO: MAXDEEP can be myLen-1 IF THERE IS NO FODD in front of us
+        // TODO: MAXDEEP can be myLen-1 IF THERE IS NO FODD in front of us
         // really???
         MAXDEEP = myLen;//Math.min(len, 20);
 
-        goForFood = false;
+        foodGoForIt = false;
+        foodFetchConditionGoHazard = false;
+        foodFetchConditionGoBorder = false;
+
         foodPlaces = new ArrayList<>();
 
         hazardZone = new int[Y][X];
@@ -158,17 +170,18 @@ public class Session {
 
         if(gameType != null) {
             switch (gameType) {
+                case "solo":
                 case "standard":
                 case "squad":
                     break;
 
                 case "royale":
-                    royaleMode = true;
+                    mRoyaleMode = true;
                     hungerMode = false;
                     break;
 
                 case "wrapped":
-                    wrappedMode = true;
+                    mWrappedMode = true;
                     enterBorderZone = true;
                     setFullBoardBounds();
                     break;
@@ -200,7 +213,8 @@ public class Session {
             }
         }
 
-        if(hazardDataIsPresent) {
+        mHazardPresent = hazardDataIsPresent;
+        if(mHazardPresent) {
             if (!enterHazardZone) {
                 if (hazardZone[myPos.y][myPos.x] > 0 && myHealth < 95) {
                     escapeFromHazard = true;
@@ -208,7 +222,7 @@ public class Session {
             }
 
             // try to adjust the MIN/MAX values based on the present hazardData...
-            if(royaleMode){
+            if(mRoyaleMode){
                 ArrayList<Boolean>[] yAxisHazards = new ArrayList[Y];
                 ArrayList<Boolean>[] xAxisHazards = new ArrayList[X];
 
@@ -265,29 +279,29 @@ public class Session {
         private void next(){
             retry = true;
             if (escapeFromBorder) {
-                LOG.info("deactivate ESCAPE-FROM-BORDER");
+                LOG.debug("deactivate ESCAPE-FROM-BORDER");
                 escapeFromBorder = false;
             } else if(escapeFromHazard){
-                LOG.info("deactivate ESCAPE-FROM-HAZARD");
+                LOG.debug("deactivate ESCAPE-FROM-HAZARD");
                 escapeFromHazard = false;
             } else if (!enterBorderZone) {
-                LOG.info("activate now GO-TO-BORDERS");
+                LOG.debug("activate now GO-TO-BORDERS");
                 enterBorderZone = true;
                 setFullBoardBounds();
-            } else if (!enterHazardZone) {
-                LOG.info("activate now GO-TO-HAZARD");
+            } else if (mHazardPresent && !enterHazardZone) {
+                LOG.debug("activate now GO-TO-HAZARD");
                 enterHazardZone = true;
             } else if(MAXDEEP > 1){
-                LOG.info("activate MAXDEEP TO: "+MAXDEEP);
+                LOG.debug("activate MAXDEEP TO: "+MAXDEEP);
                 MAXDEEP--;
             } else if (!enterDangerZone) {
-                LOG.info("activate now GO-TO-DANGER-ZONE");
+                LOG.debug("activate now GO-TO-DANGER-ZONE");
                 enterDangerZone = true;
             } else if (!enterNoGoZone) {
-                LOG.info("activate now GO-TO-NO-GO-ZONE");
+                LOG.debug("activate now GO-TO-NO-GO-ZONE");
                 enterNoGoZone = true;
             } else {
-                LOG.info("NO-WAY-TO-MOVE");
+                LOG.debug("NO-WAY-TO-MOVE");
                 endReached = true;
                 retry = false;
             }
@@ -305,7 +319,7 @@ public class Session {
         if (risk.endReached) {
             return Snake.REPEATLAST;
         } else if (risk.retry) {
-            logState(moveAsString);
+            //logState(moveAsString);
             boolean canMove = false;
 
             switch (move){
@@ -333,76 +347,6 @@ public class Session {
         return null;
     }
 
-    private class DoomedCheckReply{
-        boolean doomed = false;
-        boolean retry = false;
-    }
-
-    private String checkFirstOnRetry(int move){
-        cmdChain.clear();
-        switch (firstMoveToTry){
-            case Snake.UP:
-                return moveUp();
-            case Snake.RIGHT:
-                return moveRight();
-            case Snake.DOWN:
-                return moveDown();
-            case Snake.LEFT:
-                return moveLeft();
-            default:
-                switch (move) {
-                    case Snake.UP:
-                        return moveUp();
-                    case Snake.RIGHT:
-                        return moveRight();
-                    case Snake.DOWN:
-                        return moveDown();
-                    default:
-                    case Snake.LEFT:
-                        return moveLeft();
-                }
-        }
-    }
-
-    private DoomedCheckReply checkDoomed(int cmdToAdd) {
-        DoomedCheckReply reply = new DoomedCheckReply();
-        cmdChain.add(cmdToAdd);
-        if (cmdChain.size() > 4) {
-            reply.retry = true;
-            cmdChain = new ArrayList<>();
-            cmdChain.add(cmdToAdd);
-            if (escapeFromBorder) {
-                LOG.info("deactivate ESCAPE-FROM-BORDER");
-                escapeFromBorder = false;
-            } else if(escapeFromHazard){
-                LOG.info("deactivate ESCAPE-FROM-HAZARD");
-                escapeFromHazard = false;
-            } else if (!enterBorderZone) {
-                LOG.info("activate now GO-TO-BORDERS");
-                enterBorderZone = true;
-                setFullBoardBounds();
-            } else if (!enterHazardZone) {
-                LOG.info("activate now GO-TO-HAZARD");
-                enterHazardZone = true;
-            } else if(MAXDEEP > 1){
-                LOG.info("activate MAXDEEP TO: "+MAXDEEP);
-                MAXDEEP--;
-            } else if (!enterDangerZone) {
-                LOG.info("activate now GO-TO-DANGER-ZONE");
-                enterDangerZone = true;
-            } else if (!enterNoGoZone) {
-                LOG.info("activate now GO-TO-NO-GO-ZONE");
-                enterNoGoZone = true;
-            } else {
-                doomed = true;
-                logState("DOOMED!", true);
-                reply.doomed = true;
-                return reply;
-            }
-        }
-        return reply;
-    }
-
     private int getAdvantage(){
         if( hungerMode ){
             return 8;
@@ -426,131 +370,51 @@ public class Session {
         }
     }
 
-    public String checkSpecialMoves() {
-        String killMove = checkKillMoves();
-        if(killMove != null){
-            LOG.info("GO FOR KILL " +killMove);
-            return killMove;
+    public List<Integer> checkSpecialMoves() {
+        List<Integer> killMoves = checkKillMoves();
+        if(killMoves != null && killMoves.size() >0){
+            LOG.info("FOUND possible KILLs :" +killMoves);
         }
 
         if (myHealth < 31 || (myLen - getAdvantage() <= maxOtherSnakeLen)) {
             LOG.info("Check for FOOD! health:" + myHealth + " len:" + myLen +"(-"+getAdvantage()+")"+ "<=" + maxOtherSnakeLen);
-
-            boolean resetSaveBounds = !enterBorderZone;
-            SavedState saveState = saveState();
-
             // ok we need to start to fetch FOOD!
-            // we should move into the direction of the next FOOD!
-            String possibleFoodMove = checkFoodMove();
-            LOG.info("POSSIBLE FOOD MOVE: " + possibleFoodMove);
-
-            if (possibleFoodMove != null) {
-                return possibleFoodMove;
-            } else {
-                restoreState(saveState);
-                if (resetSaveBounds) {
-                    // checkFoodMove() might set the MIN/MAX to the total bounds...
-                    // this needs to be reset...
-                    initSaveBoardBounds();
-                }
-            }
+            // we should move into the direction of the next FOOD! (setting our preferred direction)
+            checkFoodMoves();
         }
-
-        // REMOVED cause after REFACTOR moveLeft not needed ?!
-        // if we are in the UPPER-ROW and the x=0 is free, let's move to the LEFT!
-        /*if (tPhase > 0 && pos.y == yMax && pos.x < xMax / 3) {
-            if (pos.x > xMax) {
-                LOG.info("SPECIAL MOVE -> LEFT CALLED");
-                return moveLeft();
-            } else {
-                LOG.info("SPECIAL MOVE -> DOWN CALLED");
-                return moveDown();
-            }
-        }*/
-        return null;
+        return killMoves;
     }
 
-    private String checkKillMoves(){
-        if(myHealth > 19 && (wrappedMode || myPos.y != 0 && myPos.x !=0 && myPos.y != Y-1 && myPos.x != X-1)) {
-            ArrayList<String> checkedKills = new ArrayList<>();
-            checkForPossibleKillInDirection(Snake.UP, Snake.U, checkedKills);
-            checkForPossibleKillInDirection(Snake.RIGHT, Snake.R, checkedKills);
-            checkForPossibleKillInDirection(Snake.DOWN, Snake.D, checkedKills);
-            checkForPossibleKillInDirection(Snake.LEFT, Snake.L, checkedKills);
-            int size = checkedKills.size();
-            if(size > 0){
-                if(size == 1){
-                    return checkedKills.get(0);
-                }else{
-                    String preferredKillDirection = getMoveIntAsString(state);
-                    if(checkedKills.contains(preferredKillDirection)) {
-                        return preferredKillDirection;
-                    }else{
-                        return checkedKills.get(0);
-                    }
-                }
-            } else {
-                return null;
-            }
+    private List<Integer> checkKillMoves(){
+        // verify if this IF condition makes sense here - we might want to decide later, IF we are going to
+        // make the killMove...
+        if(myHealth > 19 && (mWrappedMode || myPos.y != 0 && myPos.x !=0 && myPos.y != Y-1 && myPos.x != X-1)) {
+            ArrayList<Integer> checkedKills = new ArrayList<>();
+            checkForPossibleKillInDirection(Snake.UP, checkedKills);
+            checkForPossibleKillInDirection(Snake.RIGHT, checkedKills);
+            checkForPossibleKillInDirection(Snake.DOWN, checkedKills);
+            checkForPossibleKillInDirection(Snake.LEFT, checkedKills);
+            return checkedKills;
         }
         return null;
     }
 
-    private int[][] generateKillMap(){
-        int[][] aMap = new int[Y][X];
-        for (int y = 0; y < X; y++) {
-            for (int x = 0; x < X; x++) {
-                if (myBody[y][x] > 0) {
-                    aMap[y][x] = 1;
-                } else{
-                    if (snakeBodies[y][x] > 0) {
-                        aMap[y][x] = 1;
-                    }
-                }
-            }
-        }
-        return aMap;
-    }
-
-    private void checkForPossibleKillInDirection(int move, String retVal, ArrayList<String> resList) {
+    private void checkForPossibleKillInDirection(int move, ArrayList<Integer> resList) {
         Point p = getNewPointForDirection(myPos, move);
         try {
             if(myBody[p.y][p.x] == 0 && snakeBodies[p.y][p.x] == 0) {
                 int val = snakeNextMovePossibleLocations[p.y][p.x];
                 if (val > 0 && val < myLen) {
-                    switch (move) {
-                        case Snake.UP:
-                            if (canMoveUp(myPos, generateKillMap(), 0)) {
-                                resList.add(retVal);
-                            }
-                            break;
-
-                        case Snake.RIGHT:
-                            if (canMoveRight(myPos, generateKillMap(), 0)) {
-                                resList.add(retVal);
-                            }
-                            break;
-
-                        case Snake.DOWN:
-                            if (canMoveDown(myPos, generateKillMap(), 0)) {
-                                resList.add(retVal);
-                            }
-                            break;
-
-                        case Snake.LEFT:
-                            if (canMoveLeft(myPos, generateKillMap(), 0)) {
-                                resList.add(retVal);
-                            }
-                            break;
-                    }
-
+                    resList.add(move);
                 }
             }
         }catch(IndexOutOfBoundsException e){
+            // TODO: check for indexOutOfBounds (p.y/x can be -1 or > Y/X) - right now catching the exception
+            // cause of laziness
         }
     }
 
-    private String checkFoodMove() {
+    private void checkFoodMoves() {
         Point closestFood = null;
         int minDist = Integer.MAX_VALUE;
 
@@ -562,7 +426,7 @@ public class Session {
         if (myHealth > 15) {
             // in wrappedMode there are no corners... and in the first 5 turns we might pick
             // up food that is around us...
-            if(turn > 5 && !wrappedMode) {
+            if(turn > 5 && !mWrappedMode) {
                 // food in CORNERS is TOXIC (but if we are already IN the corner we will
                 // take it!
                 if (!(myPos.x == 0 && myPos.y <= 1) || (myPos.x <= 1 && myPos.y == 0)) {
@@ -628,7 +492,7 @@ public class Session {
                 closestFood = closestFoodList.get(0);
 
                 // TODO: count blockingBlocks in WRAPPED MODE
-                if(!wrappedMode) {
+                if(!mWrappedMode) {
                     // need to decided which food is better?!
                     for (Point cfp : closestFoodList) {
                         int blocks = countBlockingsBetweenFoodAndHead(cfp);
@@ -642,23 +506,18 @@ public class Session {
                 }
             }
 
-            goForFood = true;
-            if(activeFood == null || !activeFood.equals(closestFood)){
-                lastUsedFoodDirection = -1;
-                lastSecondaryFoodDirection = -1;
+            if(foodActive == null || !foodActive.equals(closestFood)){
+                mFoodPrimaryDirection = -1;
+                mFoodSecondaryDirection = -1;
             }
-            activeFood = closestFood;
-
-            // TODO:
-            // here we have to find a smarter way to decide, in which direction we should
-            // go to approach the food -> since currently me are blocked by ourselves
+            foodActive = closestFood;
 
             int yDelta = myPos.y - closestFood.y;
             int xDelta = myPos.x - closestFood.x;
             int preferredYDirection = -1;
             int preferredXDirection = -1;
-            if (lastUsedFoodDirection == -1 || yDelta == 0 || xDelta == 0) {
-                if(wrappedMode && Math.abs(yDelta) > Y/2) {
+            if (mFoodPrimaryDirection == -1 || yDelta == 0 || xDelta == 0) {
+                if(mWrappedMode && Math.abs(yDelta) > Y/2) {
                     preferredYDirection = Snake.UP;
                 } else if (yDelta > 0) {
                     preferredYDirection = Snake.DOWN;
@@ -666,7 +525,7 @@ public class Session {
                     preferredYDirection = Snake.UP;
                 }
 
-                if((wrappedMode && Math.abs(xDelta) > X/2)){
+                if((mWrappedMode && Math.abs(xDelta) > X/2)){
                     preferredXDirection = Snake.RIGHT;
                 }else if (xDelta > 0) {
                     preferredXDirection = Snake.LEFT;
@@ -675,171 +534,53 @@ public class Session {
                 }
 
                 if (Math.abs(yDelta) > Math.abs(xDelta)) {
-                    lastUsedFoodDirection = preferredYDirection;
-                    lastSecondaryFoodDirection = preferredXDirection;
+                    mFoodPrimaryDirection = preferredYDirection;
+                    mFoodSecondaryDirection = preferredXDirection;
                 } else {
-                    lastUsedFoodDirection = preferredXDirection;
-                    lastSecondaryFoodDirection = preferredYDirection;
+                    mFoodPrimaryDirection = preferredXDirection;
+                    mFoodSecondaryDirection = preferredYDirection;
                 }
             }
 
+            foodGoForIt = true;
             // IF we are LOW on health, and HAZARD is enabled - we skip the hazard check!
             boolean goFullBorder = false;
             if(!enterHazardZone || escapeFromHazard) {
                 // two move in hazard takes 2 x 16 health (we need at least 32 health left)
-                if ((myHealth < 34 || (royaleMode && myHealth < 80))
-                                && (    (xDelta == 0 && Math.abs(yDelta) <= 2) ||
-                                        (yDelta == 0 && Math.abs(xDelta) <= 2) ||
-                                        (Math.abs(yDelta) == 1 && Math.abs(xDelta) == 1))
+                if ((myHealth < 34 || (mRoyaleMode && myHealth < 80))
+                        &&  (   (xDelta == 0 && Math.abs(yDelta) <= 2) ||
+                                (yDelta == 0 && Math.abs(xDelta) <= 2) ||
+                                (Math.abs(yDelta) == 1 && Math.abs(xDelta) == 1)
+                            )
                 ) {
-                    escapeFromHazard = false;
-                    enterHazardZone = true;
-
+                    foodFetchConditionGoHazard = true;
                     goFullBorder = true;
                 }
             }
-
             if (!enterBorderZone || escapeFromBorder) {
                 if(goFullBorder || turn < 50 || myLen < 15 || myLen - 1 < maxOtherSnakeLen || isLocatedAtBorder(closestFood)){
-                    escapeFromBorder = false;
-                    enterBorderZone = true;
-                    setFullBoardBounds();
+                    foodFetchConditionGoBorder = true;
                 }
             }
 
-            LOG.info("TRY TO GET FOOD: at: " + closestFood +" moving: "+getMoveIntAsString(lastUsedFoodDirection));
-            SavedState savedState = saveState();
-
-            // the 'lastFoodState' is the move direction we want to go... so
-            // when resetting the already tried cmd - we want to make sure,
-            // that we start again with our preferred move direction.
-            firstMoveToTry = lastUsedFoodDirection;
-
-            // ok let's try of we can move in the preferred direction now?
-            ArrayList<String> possibleFoodMoves = new ArrayList<>();
-            String possibleFoodMode = getPossibleFoodMove(lastUsedFoodDirection, possibleFoodMoves);
-            if (possibleFoodMode != null) {
-                return possibleFoodMode;
-            }else{
-                // if we reached this point, then the preferred food direction could not be easily used...
-                // and we need to check for alternatives...
-
-                // do we have an alternative direction?!
-                if( lastSecondaryFoodDirection == -1 ){
-                    // NO -> there is no other option - that really sucks! [we might be forced to return
-                    // the initial value in the 'possibleFoodMoves' List]
-
-                    // but first check, IF WE might, can move with a bit more risk?!
-                    String possibleFoodMoveWithMoreRisk = getPossibleFoodMove(lastUsedFoodDirection, possibleFoodMoves);
-                    if(possibleFoodMoveWithMoreRisk != null){
-                        return possibleFoodMoveWithMoreRisk;
-                    }else if(possibleFoodMoves.size() > 0) {
-                        String bummerDirection = possibleFoodMoves.get(0);
-                        LOG.info("BUMMER - no SECONDARY direction - and no MORE RISKY move - so RETURN: "+bummerDirection);
-                        return bummerDirection;
-                    }else{
-                        LOG.info("BUMMER - no SECONDARY direction - and no MORE RISKY move - AND NO ALTERNATIVE FOUND");
-                    }
-                }else{
-                    if(possibleFoodMoves.size() > 0 && possibleFoodMoves.get(0).equals(getMoveIntAsString(lastSecondaryFoodDirection))){
-                        return possibleFoodMoves.get(0);
-                    } else {
-                        // there is probably more state stuff that need to be reset here...
-                        restoreState(savedState);
-
-                        LOG.info("TRY SECONDARY FOOD direction: "+getMoveIntAsString(lastSecondaryFoodDirection));
-                        firstMoveToTry = lastSecondaryFoodDirection;
-                        String secondaryMove = getPossibleFoodMove(lastSecondaryFoodDirection, possibleFoodMoves);
-                        if(secondaryMove != null){
-                            LOG.info("SECONDARY FOOD MOVE is possible: " + secondaryMove);
-                            return secondaryMove;
-                        } else {
-                            // if we reached THIS point, then there is no way to go in or preferred direction
-                            int len = possibleFoodMoves.size();
-                            if (len == 1) {
-                                LOG.info("UNHAPPY with direction to food: " + possibleFoodMoves);
-                                return possibleFoodMoves.get(0);
-                            } else if (len > 1) {
-                                // TODO MAKE a decision !!!
-                                LOG.info("UNHAPPY with direction to food: " + possibleFoodMoves);
-                                return possibleFoodMoves.get(0);
-                            } else {
-                                activeFood = null;
-                                lastUsedFoodDirection = -1;
-                                lastSecondaryFoodDirection = -1;
-                                LOG.info("COULD NOT FIND a direction to food: " + possibleFoodMoves);
-                            }
-                        }
-                    }
-                }
+            if(mFoodSecondaryDirection != -1){
+                LOG.info("TRY TO GET FOOD: at: " + closestFood + " moving: " + getMoveIntAsString(mFoodPrimaryDirection) +" or "+getMoveIntAsString(mFoodSecondaryDirection));
+            }else {
+                LOG.info("TRY TO GET FOOD: at: " + closestFood + " moving: " + getMoveIntAsString(mFoodPrimaryDirection));
             }
         } else {
-            activeFood = null;
-            lastUsedFoodDirection = -1;
-            lastSecondaryFoodDirection = -1;
+            foodGoForIt = false;
+            foodFetchConditionGoHazard = false;
+            foodFetchConditionGoBorder = false;
+            foodActive = null;
+            mFoodPrimaryDirection = -1;
+            mFoodSecondaryDirection = -1;
             LOG.info("NO NEARBY FOOD FOUND minDist:" + minDist + " x:" + (X / 3) + "+y:" + (Y / 3) + "=" + ((X / 3) + (Y / 3)));
         }
-        return null;
-    }
-
-    private String getPossibleFoodMove(int moveDirectionToCheck, ArrayList<String> possibleFoodMoves) {
-        switch (moveDirectionToCheck) {
-            case Snake.DOWN:
-                if (checkForPossibleFoodInDirection(Snake.DOWN, Snake.D, possibleFoodMoves)){
-                    return Snake.D;
-                }
-                break;
-
-            case Snake.UP:
-                if (checkForPossibleFoodInDirection(Snake.UP, Snake.U, possibleFoodMoves)){
-                    return Snake.U;
-                }
-                break;
-
-            case Snake.LEFT:
-                if (checkForPossibleFoodInDirection(Snake.LEFT, Snake.L, possibleFoodMoves)){
-                    return Snake.L;
-                }
-                break;
-
-            case Snake.RIGHT:
-                if (checkForPossibleFoodInDirection(Snake.RIGHT, Snake.R, possibleFoodMoves)){
-                    return Snake.R;
-                }
-                break;
-        }
-        return null;
-    }
-
-    private boolean checkForPossibleFoodInDirection(int move, String expectedReturnValue, ArrayList<String> possibleFoodMoves) {
-        String retVal = null;
-        switch (move){
-            case Snake.UP:
-                retVal = moveUp();
-                break;
-
-            case Snake.RIGHT:
-                retVal = moveRight();
-                break;
-
-            case Snake.DOWN:
-                retVal = moveDown();
-                break;
-
-            case Snake.LEFT:
-                retVal = moveLeft();
-                break;
-        }
-        if(expectedReturnValue.equals(retVal)){
-            return true;
-        } else if(retVal != null && !possibleFoodMoves.contains(retVal)){
-            possibleFoodMoves.add(retVal);
-        }
-        return false;
     }
 
     private int getFoodDistance(Point food, Point other){
-        if(!wrappedMode){
+        if(!mWrappedMode){
             return Math.abs(food.x - other.x) + Math.abs(food.y - other.y);
         }else{
             // in wrappedMode: if food.x = 0 & other.x = 11, then distance is 1
@@ -893,7 +634,7 @@ public class Session {
     }
 
     private boolean isLocatedAtBorder(Point p) {
-        if(turn < 20 || wrappedMode){
+        if(turn < 20 || mWrappedMode){
             return  false;//hazardNearbyPlaces.contains(p);
         }else {
             if(turn < 50 || myLen < 15 || myLen - 1 < maxOtherSnakeLen){
@@ -916,7 +657,7 @@ public class Session {
 
     Point getNewPointForDirection(Point aPos, int move){
         Point newPos = aPos.clone();
-        if(wrappedMode) {
+        if(mWrappedMode) {
             switch (move) {
                 case Snake.UP:
                     newPos.y = (newPos.y + 1) % Y;
@@ -1001,7 +742,7 @@ public class Session {
                 return false;
             } else {
                 int newY = (myPos.y + 1) % Y;
-                return  (wrappedMode || myPos.y < yMax)
+                return  (mWrappedMode || myPos.y < yMax)
                         && myBody[newY][myPos.x] == 0
                         && snakeBodies[newY][myPos.x] == 0
                         && (!escapeFromHazard || hazardZone[newY][myPos.x] == 0)
@@ -1018,7 +759,7 @@ public class Session {
     private boolean canMoveUp(Point aPos, int[][] map, int c) {
         try {
             int newY = (aPos.y + 1) % Y;
-            return  (wrappedMode || aPos.y < yMax)
+            return  (mWrappedMode || aPos.y < yMax)
                     && map[newY][aPos.x] == 0
                     && (enterNoGoZone || !willCreateLoop(Snake.UP, aPos, map, c))
                     ;
@@ -1028,17 +769,241 @@ public class Session {
         }
     }
 
+    private boolean canMoveRight() {
+        try {
+            if (escapeFromBorder && (myPos.y == 0 || myPos.y == Y - 1)) {
+                return false;
+            } else {
+                int newX = (myPos.x + 1) % X;
+                return  (mWrappedMode || myPos.x < xMax)
+                        && myBody[myPos.y][newX] == 0
+                        && snakeBodies[myPos.y][newX] == 0
+                        && (!escapeFromHazard || hazardZone[myPos.y][newX] == 0)
+                        && (enterHazardZone || myHealth > 96 || hazardZone[myPos.y][newX] == 0)
+                        && (enterDangerZone || snakeNextMovePossibleLocations[myPos.y][newX] < myLen)
+                        && (enterNoGoZone || !willCreateLoop(Snake.RIGHT, myPos, null, 0))
+                        ;
+            }
+        } catch (IndexOutOfBoundsException e) {
+            LOG.info("IoB @ canMoveRight check...", e);
+            return false;
+        }
+    }
+
+    private boolean canMoveRight(Point aPos, int[][] map, int c) {
+        try {
+            int newX = (aPos.x + 1) % X;
+            return  (mWrappedMode || aPos.x < xMax)
+                    && map[aPos.y][newX] == 0
+                    && (enterNoGoZone || !willCreateLoop(Snake.RIGHT, aPos, map, c))
+                    ;
+        } catch (IndexOutOfBoundsException e) {
+            LOG.info("IoB @ canMoveRightLoop check...", e);
+            return false;
+        }
+    }
+
+    private boolean canMoveDown() {
+        try {
+            if (escapeFromBorder && (myPos.x == 0 || myPos.x == X - 1)) {
+                return false;
+            } else {
+                int newY = (myPos.y - 1 + Y) % Y;//myPos.y > 0 ? myPos.y - 1 : Y-1;
+                return  (mWrappedMode || myPos.y > yMin)
+                        && myBody[newY][myPos.x] == 0
+                        && snakeBodies[newY][myPos.x] == 0
+                        && (!escapeFromHazard || hazardZone[newY][myPos.x] == 0)
+                        && (enterHazardZone || myHealth > 96 || hazardZone[newY][myPos.x] == 0)
+                        && (enterDangerZone || snakeNextMovePossibleLocations[newY][myPos.x] < myLen)
+                        && (enterNoGoZone || !willCreateLoop(Snake.DOWN, myPos, null, 0))
+                        ;
+            }
+        } catch (IndexOutOfBoundsException e) {
+            LOG.info("IoB @ canMoveDown check...", e);
+            return false;
+        }
+    }
+
+    private boolean canMoveDown(Point aPos, int[][] map, int c) {
+        try {
+            int newY = (aPos.y - 1 + Y) % Y; // aPos.y > 0 ? aPos.y - 1 : Y-1;
+            return  (mWrappedMode || aPos.y > yMin)
+                    && map[newY][aPos.x] == 0
+                    && (enterNoGoZone || !willCreateLoop(Snake.DOWN, aPos, map, c))
+                    ;
+        } catch (IndexOutOfBoundsException e) {
+            LOG.info("IoB @ canMoveDownLoop check...", e);
+            return false;
+        }
+    }
+
+    private boolean canMoveLeft() {
+        try {
+            if (escapeFromBorder && (myPos.y == 0 || myPos.y == Y - 1)) {
+                return false;
+            } else {
+                int newX = (myPos.x - 1 + X) % X;//myPos.x > 0 ? myPos.x - 1 : X-1;
+                return  (mWrappedMode || myPos.x > xMin)
+                        && myBody[myPos.y][newX] == 0
+                        && snakeBodies[myPos.y][newX] == 0
+                        && (!escapeFromHazard || hazardZone[myPos.y][newX] == 0)
+                        && (enterHazardZone || myHealth > 96 || hazardZone[myPos.y][newX] == 0)
+                        && (enterDangerZone || snakeNextMovePossibleLocations[myPos.y][newX] < myLen)
+                        && (enterNoGoZone || !willCreateLoop(Snake.LEFT, myPos, null, 0))
+                        ;
+            }
+        } catch (IndexOutOfBoundsException e) {
+            LOG.info("IoB @ canMoveLeft check...", e);
+            return false;
+        }
+    }
+
+    private boolean canMoveLeft(Point aPos, int[][] map, int c) {
+        try {
+            int newX = (aPos.x - 1 + X) % X;//aPos.x > 0 ? aPos.x - 1 : X-1;
+            return  (mWrappedMode || aPos.x > xMin)
+                    && map[aPos.y][newX] == 0
+                    && (enterNoGoZone || !willCreateLoop(Snake.LEFT, aPos, map, c))
+                    ;
+        } catch (IndexOutOfBoundsException e) {
+            LOG.info("IoB @ canMoveLeftLoop check...", e);
+            return false;
+        }
+    }
+
+    private void logState(final String method) {
+        logState(method, LOG);
+    }
+
+    void logState(String msg, Logger LOG) {
+        msg = msg
+                + " "+gameId
+                + " Tn:" + turn
+                + " st:" + getMoveIntAsString(state).substring(0, 2).toUpperCase() + "[" + state + "]"
+                + " ph:" + tPhase
+                + (escapeFromHazard ? " GETOUTHAZD" : "")
+                + (mHazardPresent ? " goHazd? " + enterHazardZone : "")
+                + (escapeFromBorder ? " GAWYBRD" : "")
+                + " goBorder? " + enterBorderZone
+                + " maxDeep? " + MAXDEEP
+                + " goDanger? " + enterDangerZone
+                + " goNoGo? " + enterNoGoZone;
+        LOG.info(msg);
+    }
+
+    String getMoveIntAsString(int move) {
+        switch (move) {
+            case Snake.UP:
+                return Snake.U;
+            case Snake.RIGHT:
+                return Snake.R;
+            case Snake.DOWN:
+                return Snake.D;
+            case Snake.LEFT:
+                return Snake.L;
+            default:
+                return "UNKNOWN";
+        }
+    }
+
+    void logBoard(Logger LOG) {
+
+        StringBuffer z = new StringBuffer();
+        z.append(" ┌");
+        for(int i=0; i< X; i++){z.append('─');}
+        z.append("┐");
+        LOG.info(z.toString());
+
+        for (int y = Y - 1; y >= 0; y--) {
+            StringBuffer b = new StringBuffer();
+            b.append(y % 10);
+            b.append('│');
+            for (int x = 0; x < X; x++) {
+                if (myPos.x == x && myPos.y == y) {
+                    b.append("X");
+                } else if (myBody[y][x] == 1) {
+                    b.append('c');
+                } else if (snakeBodies[y][x] > 0) {
+                    if (snakeBodies[y][x] == 1) {
+                        b.append('+');
+                    } else {
+                        b.append('O');
+                    }
+                } else {
+                    boolean isHazard = hazardZone[y][x] > 0;
+                    boolean isFoodPlace = foodPlaces.contains(new Point(y, x));
+                    if (snakeNextMovePossibleLocations[y][x] > 0) {
+                        if (isFoodPlace) {
+                            b.append('●');
+                        } else {
+                            b.append('◦');
+                        }
+                    } else if (isFoodPlace) {
+                        if (isHazard) {
+                            b.append('▓');
+                        } else {
+                            b.append('*');
+                        }
+                    } else if (isHazard) {
+                        b.append('▒');
+                    } else {
+                        b.append(' ');
+                    }
+                }
+            }
+            b.append('│');
+            LOG.info(b.toString());
+        }
+
+        StringBuffer y = new StringBuffer();
+        y.append(" └");
+        for(int i=0; i< X; i++){y.append('─');}
+        y.append("┘");
+        LOG.info(y.toString());
+
+        StringBuffer b = new StringBuffer();
+        b.append("  ");
+        for (int i = 0; i < X; i++) {
+            b.append(i % 10);
+        }
+        LOG.info(b.toString());
+    }
+
+    private void logMap(int[][] aMap, int c) {
+        LOG.info("XXL TurnNo:"+turn+" MAXDEEP:"+MAXDEEP+" len:"+ myLen +" loopCount:"+c);
+        StringBuffer z = new StringBuffer();
+        z.append('┌');
+        for(int i=0; i< X; i++){z.append('─');}
+        z.append('┐');
+        LOG.info(z.toString());
+
+        for (int y = Y - 1; y >= 0; y--) {
+            StringBuffer b = new StringBuffer();
+            b.append('│');
+            for (int x = 0; x < X; x++) {
+                if(aMap[y][x]>0){
+                    b.append('X');
+                }else{
+                    b.append(' ');
+                }
+            }
+            b.append('│');
+            LOG.info(b.toString());
+        }
+        StringBuffer y = new StringBuffer();
+        y.append('└');
+        for(int i=0; i< X; i++){y.append('─');}
+        y.append('┘');
+        LOG.info(y.toString());
+    }
+
+    /*ArrayList<Integer> cmdChain = null;
+    int firstMoveToTry = -1;
     public String moveUp() {
         if (cmdChain.size() < 4 && cmdChain.contains(Snake.UP)) {
             // here we can generate randomness!
             return moveRight();
         } else {
-            DoomedCheckReply r = checkDoomed(Snake.UP);
-            if (r.doomed) {
-                return Snake.REPEATLAST;
-            }else if(r.retry && firstMoveToTry != -1){
-                return checkFirstOnRetry(Snake.UP);
-            }
             logState("UP");
             if (canMoveUp()) {
                 LOG.debug("UP: YES");
@@ -1058,51 +1023,10 @@ public class Session {
             }
         }
     }
-
-    private boolean canMoveRight() {
-        try {
-            if (escapeFromBorder && (myPos.y == 0 || myPos.y == Y - 1)) {
-                return false;
-            } else {
-                int newX = (myPos.x + 1) % X;
-                return  (wrappedMode || myPos.x < xMax)
-                        && myBody[myPos.y][newX] == 0
-                        && snakeBodies[myPos.y][newX] == 0
-                        && (!escapeFromHazard || hazardZone[myPos.y][newX] == 0)
-                        && (enterHazardZone || myHealth > 96 || hazardZone[myPos.y][newX] == 0)
-                        && (enterDangerZone || snakeNextMovePossibleLocations[myPos.y][newX] < myLen)
-                        && (enterNoGoZone || !willCreateLoop(Snake.RIGHT, myPos, null, 0))
-                        ;
-            }
-        } catch (IndexOutOfBoundsException e) {
-            LOG.info("IoB @ canMoveRight check...", e);
-            return false;
-        }
-    }
-
-    private boolean canMoveRight(Point aPos, int[][] map, int c) {
-        try {
-            int newX = (aPos.x + 1) % X;
-            return  (wrappedMode || aPos.x < xMax)
-                    && map[aPos.y][newX] == 0
-                    && (enterNoGoZone || !willCreateLoop(Snake.RIGHT, aPos, map, c))
-                    ;
-        } catch (IndexOutOfBoundsException e) {
-            LOG.info("IoB @ canMoveRightLoop check...", e);
-            return false;
-        }
-    }
-
     public String moveRight() {
         if (cmdChain.size() < 4 && cmdChain.contains(Snake.RIGHT)) {
             return moveDown();
         } else {
-            DoomedCheckReply r = checkDoomed(Snake.RIGHT);
-            if (r.doomed) {
-                return Snake.REPEATLAST;
-            }else if(r.retry && firstMoveToTry != -1){
-                return checkFirstOnRetry(Snake.RIGHT);
-            }
             logState("RI");
             if (canMoveRight()) {
                 LOG.debug("RIGHT: YES");
@@ -1128,51 +1052,10 @@ public class Session {
             }
         }
     }
-
-    private boolean canMoveDown() {
-        try {
-            if (escapeFromBorder && (myPos.x == 0 || myPos.x == X - 1)) {
-                return false;
-            } else {
-                int newY = (myPos.y - 1 + Y) % Y;//myPos.y > 0 ? myPos.y - 1 : Y-1;
-                return  (wrappedMode || myPos.y > yMin)
-                        && myBody[newY][myPos.x] == 0
-                        && snakeBodies[newY][myPos.x] == 0
-                        && (!escapeFromHazard || hazardZone[newY][myPos.x] == 0)
-                        && (enterHazardZone || myHealth > 96 || hazardZone[newY][myPos.x] == 0)
-                        && (enterDangerZone || snakeNextMovePossibleLocations[newY][myPos.x] < myLen)
-                        && (enterNoGoZone || !willCreateLoop(Snake.DOWN, myPos, null, 0))
-                        ;
-            }
-        } catch (IndexOutOfBoundsException e) {
-            LOG.info("IoB @ canMoveDown check...", e);
-            return false;
-        }
-    }
-
-    private boolean canMoveDown(Point aPos, int[][] map, int c) {
-        try {
-            int newY = (aPos.y - 1 + Y) % Y; // aPos.y > 0 ? aPos.y - 1 : Y-1;
-            return  (wrappedMode || aPos.y > yMin)
-                    && map[newY][aPos.x] == 0
-                    && (enterNoGoZone || !willCreateLoop(Snake.DOWN, aPos, map, c))
-                    ;
-        } catch (IndexOutOfBoundsException e) {
-            LOG.info("IoB @ canMoveDownLoop check...", e);
-            return false;
-        }
-    }
-
     public String moveDown() {
         if (cmdChain.size() < 4 && cmdChain.contains(Snake.DOWN)) {
             return moveLeft();
         } else {
-            DoomedCheckReply r = checkDoomed(Snake.DOWN);
-            if (r.doomed) {
-                return Snake.REPEATLAST;
-            }else if(r.retry && firstMoveToTry != -1){
-                return checkFirstOnRetry(Snake.DOWN);
-            }
             logState("DO");
             if (canMoveDown()) {
                 LOG.debug("DOWN: YES");
@@ -1205,51 +1088,10 @@ public class Session {
             }
         }
     }
-
-    private boolean canMoveLeft() {
-        try {
-            if (escapeFromBorder && (myPos.y == 0 || myPos.y == Y - 1)) {
-                return false;
-            } else {
-                int newX = (myPos.x - 1 + X) % X;//myPos.x > 0 ? myPos.x - 1 : X-1;
-                return  (wrappedMode || myPos.x > xMin)
-                        && myBody[myPos.y][newX] == 0
-                        && snakeBodies[myPos.y][newX] == 0
-                        && (!escapeFromHazard || hazardZone[myPos.y][newX] == 0)
-                        && (enterHazardZone || myHealth > 96 || hazardZone[myPos.y][newX] == 0)
-                        && (enterDangerZone || snakeNextMovePossibleLocations[myPos.y][newX] < myLen)
-                        && (enterNoGoZone || !willCreateLoop(Snake.LEFT, myPos, null, 0))
-                        ;
-            }
-        } catch (IndexOutOfBoundsException e) {
-            LOG.info("IoB @ canMoveLeft check...", e);
-            return false;
-        }
-    }
-
-    private boolean canMoveLeft(Point aPos, int[][] map, int c) {
-        try {
-            int newX = (aPos.x - 1 + X) % X;//aPos.x > 0 ? aPos.x - 1 : X-1;
-            return  (wrappedMode || aPos.x > xMin)
-                    && map[aPos.y][newX] == 0
-                    && (enterNoGoZone || !willCreateLoop(Snake.LEFT, aPos, map, c))
-                    ;
-        } catch (IndexOutOfBoundsException e) {
-            LOG.info("IoB @ canMoveLeftLoop check...", e);
-            return false;
-        }
-    }
-
     public String moveLeft() {
         if (cmdChain.size() < 4 && cmdChain.contains(Snake.LEFT)) {
             return moveUp();
         } else {
-            DoomedCheckReply r = checkDoomed(Snake.LEFT);
-            if (r.doomed) {
-                return Snake.REPEATLAST;
-            }else if(r.retry && firstMoveToTry != -1){
-                return checkFirstOnRetry(Snake.LEFT);
-            }
             logState("LE");
             if (canMoveLeft()) {
                 LOG.debug("LEFT: YES");
@@ -1335,7 +1177,6 @@ public class Session {
             }
         }
     }
-
     private String decideForUpOrDownUsedFromMoveLeftOrRight(int cmd) {
         // if we are in the pending mode, we prefer to go ALWAYS-UP
         if (tPhase > 0 && !cmdChain.contains(Snake.UP) && myPos.y < yMax) {
@@ -1350,141 +1191,5 @@ public class Session {
                 return moveDown();
             }
         }
-    }
-
-    void logBoard() {
-
-        StringBuffer z = new StringBuffer();
-        z.append(" ┌");
-        for(int i=0; i< X; i++){z.append('─');}
-        z.append("┐");
-        LOG.info(z.toString());
-
-        for (int y = Y - 1; y >= 0; y--) {
-            StringBuffer b = new StringBuffer();
-            b.append(y % 10);
-            b.append('│');
-            for (int x = 0; x < X; x++) {
-                if (myPos.x == x && myPos.y == y) {
-                    b.append("X");
-                } else if (myBody[y][x] == 1) {
-                    b.append('c');
-                } else if (snakeBodies[y][x] > 0) {
-                    if (snakeBodies[y][x] == 1) {
-                        b.append('+');
-                    } else {
-                        b.append('O');
-                    }
-                } else {
-                    boolean isHazard = hazardZone[y][x] > 0;
-                    boolean isFoodPlace = foodPlaces.contains(new Point(y, x));
-                    if (snakeNextMovePossibleLocations[y][x] > 0) {
-                        if (isFoodPlace) {
-                            b.append('●');
-                        } else {
-                            b.append('◦');
-                        }
-                    } else if (isFoodPlace) {
-                        if (isHazard) {
-                            b.append('▓');
-                        } else {
-                            b.append('*');
-                        }
-                    } else if (isHazard) {
-                        b.append('▒');
-                    } else {
-                        b.append(' ');
-                    }
-                }
-            }
-            b.append('│');
-            LOG.info(b.toString());
-        }
-
-        StringBuffer y = new StringBuffer();
-        y.append(" └");
-        for(int i=0; i< X; i++){y.append('─');}
-        y.append("┘");
-        LOG.info(y.toString());
-
-        StringBuffer b = new StringBuffer();
-        b.append("  ");
-        for (int i = 0; i < X; i++) {
-            b.append(i % 10);
-        }
-        LOG.info(b.toString());
-    }
-
-    private void logState(final String method) {
-        logState(method, false);
-    }
-    private void logState(final String method, final boolean isDoomed) {
-        logState(method, isDoomed, LOG);
-    }
-
-    void logState(String msg, boolean isDoomed, Logger LOG) {
-        msg = msg
-                //+ " "+gameId
-                + " Tn:" + turn
-                + " st:" + getMoveIntAsString(state).substring(0, 2).toUpperCase() + "[" + state + "]"
-                + " ph:" + tPhase
-                + (escapeFromHazard ? " GETOUTHAZD" : "")
-                + " goHazd? " + enterHazardZone
-                + (escapeFromBorder ? " GAWYBRD" : "")
-                + " goBorder? " + enterBorderZone
-                + " maxDeep? " + MAXDEEP
-                + " goDanger? " + enterDangerZone
-                + " goNoGo? " + enterNoGoZone
-                + " {" + cmdChain.toString() + "}";
-        if (isDoomed) {
-            LOG.error("===================================");
-            LOG.error(msg);
-            LOG.error("===================================");
-        } else {
-            LOG.info(msg);
-        }
-    }
-
-    String getMoveIntAsString(int move) {
-        switch (move) {
-            case Snake.UP:
-                return Snake.U;
-            case Snake.RIGHT:
-                return Snake.R;
-            case Snake.DOWN:
-                return Snake.D;
-            case Snake.LEFT:
-                return Snake.L;
-            default:
-                return "UNKNOWN";
-        }
-    }
-
-    private void logMap(int[][] aMap, int c) {
-        LOG.info("XXL TurnNo:"+turn+" MAXDEEP:"+MAXDEEP+" len:"+ myLen +" loopCount:"+c);
-        StringBuffer z = new StringBuffer();
-        z.append('┌');
-        for(int i=0; i< X; i++){z.append('─');}
-        z.append('┐');
-        LOG.info(z.toString());
-
-        for (int y = Y - 1; y >= 0; y--) {
-            StringBuffer b = new StringBuffer();
-            b.append('│');
-            for (int x = 0; x < X; x++) {
-                if(aMap[y][x]>0){
-                    b.append('X');
-                }else{
-                    b.append(' ');
-                }
-            }
-            b.append('│');
-            LOG.info(b.toString());
-        }
-        StringBuffer y = new StringBuffer();
-        y.append('└');
-        for(int i=0; i< X; i++){y.append('─');}
-        y.append('┘');
-        LOG.info(y.toString());
-    }
+    }*/
 }
