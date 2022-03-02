@@ -482,7 +482,7 @@ public class Session {
 
         if(foodTargetsByDistance.size() > 0){
             // get the list of the closest food...
-            ArrayList<Point> closestFoodList = foodTargetsByDistance.get(foodTargetsByDistance.firstKey());
+            ArrayList<Point> closestFoodList = foodTargetsByDistance.firstEntry().getValue();
             if(closestFoodList.size() == 1){
                 // cool only one
                 closestFood = closestFoodList.get(0);
@@ -1034,6 +1034,7 @@ public class Session {
             }
         }
     }
+
     public String moveRight() {
         if (cmdChain.size() < 4 && cmdChain.contains(Snake.RIGHT)) {
             return moveDown();
@@ -1063,6 +1064,7 @@ public class Session {
             }
         }
     }
+
     public String moveDown() {
         if (cmdChain.size() < 4 && cmdChain.contains(Snake.DOWN)) {
             return moveLeft();
