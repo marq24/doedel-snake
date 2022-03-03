@@ -24,7 +24,7 @@ public class Session {
 
     // stateful stuff
     private int tPhase = 0;
-    private int state = 0;
+    private int state = Snake.UP;
     private int mFoodPrimaryDirection = -1;
     private int mFoodSecondaryDirection = -1;
 
@@ -1209,11 +1209,11 @@ public class Session {
     }*/
 
     String calculateNextMoveOptions() {
-        int[] bounds = new int[]{yMin, xMin, yMax, xMax};
+        int[] currentActiveBounds = new int[]{yMin, xMin, yMax, xMax};
         // checkSpecialMoves will also activate the 'goForFood' flag - so if this flag is set
         // we hat a primary and secondary direction in which we should move in order to find/get
         // food...
-        List<Integer> killMoves = checkSpecialMoves();
+        List<Integer> killMoves = null;//checkSpecialMoves();
 
         SortedSet<Integer> options = new TreeSet<Integer>();
         // make sure that we check initially our preferred direction...
@@ -1233,13 +1233,9 @@ public class Session {
 
         ArrayList<MoveWithState> possibleMoves = new ArrayList<>();
         Session.SavedState startState = saveState();
-        boolean needToResetBounds = false;
         for(int possibleDirection: options){
             restoreState(startState);
-            if(needToResetBounds) {
-                restoreBoardBounds(bounds);
-                needToResetBounds = false;
-            }
+            restoreBoardBounds(currentActiveBounds);
 
             if(possibleDirection == mFoodPrimaryDirection || possibleDirection == mFoodSecondaryDirection){
                 // So depending on the situation we want to take more risks in order to
@@ -1253,7 +1249,6 @@ public class Session {
                     escapeFromBorder = false;
                     enterBorderZone = true;
                     setFullBoardBounds();
-                    needToResetBounds = true;
                 }
             }
             // ok checking the next direction...
@@ -1263,9 +1258,13 @@ public class Session {
                 possibleMoves.add(move);
                 LOG.info("EVALUATED WE can MOVE: " + move);
             }else{
-                LOG.info("EVALUATED WE can NOT MOVE: " + getMoveIntAsString(possibleDirection));
+                LOG.info("EVALUATED "+getMoveIntAsString(possibleDirection)+" FAILED");
             }
         }
+
+        // once we got out of our loop we need to reset the active board bounds... so that min/max bounds
+        // can be used in the getBestMove() code...
+        restoreBoardBounds(currentActiveBounds);
 
         if(possibleMoves.size() == 0){
             doomed = true;
@@ -1429,10 +1428,12 @@ public class Session {
         // now we can check, if we can follow the default movement plan...
         String finalMove = lowestRiskMoves.get(0);
 
-        boolean canGoUp     = lowestRiskMoves.contains(Snake.UP);
-        boolean canGoRight  = lowestRiskMoves.contains(Snake.RIGHT);
-        boolean canGoDown   = lowestRiskMoves.contains(Snake.DOWN);
-        boolean canGoLeft   = lowestRiskMoves.contains(Snake.LEFT);
+        // for all the possible MOVE directions we might have to set our BoardBounds?!
+
+        boolean canGoUp     = lowestRiskMoves.contains(Snake.U);
+        boolean canGoRight  = lowestRiskMoves.contains(Snake.R);
+        boolean canGoDown   = lowestRiskMoves.contains(Snake.D);
+        boolean canGoLeft   = lowestRiskMoves.contains(Snake.L);
 
         switch (state){
             case Snake.UP:
@@ -1458,57 +1459,60 @@ public class Session {
                     return Snake.R;
                 }else{
                     if (myPos.x == xMax && tPhase > 0) {
-                        if (myPos.y == yMax) {
+                        if (canGoDown && myPos.y == yMax) {
                             // we should NEVER BE HERE!!
                             // we are in the UPPER/RIGHT Corner while in TraverseMode! (something failed before)
                             LOG.info("WE SHOULD NEVER BE HERE in T-PHASE >0");
                             tPhase = 0;
                             state = Snake.DOWN;
-                            //OLD CODE:
-                            //return moveDown();
+                            return Snake.D;
                         } else {
                             state = Snake.LEFT;
                             //OLD CODE:
                             //return moveUp();
+                            // NEW
+                            if(canGoUp){
+                                return Snake.U;
+                            }
                         }
                     } else {
-                        //OLD CODE:
-                        //return decideForUpOrDownUsedFromMoveLeftOrRight(Snake.RIGHT);
+                        // NEW CODE... [when we are in the init phase - reached lower right corner
+                        // we go to lower left corner]
+                        if(myPos.y == yMin && tPhase == 0 && canGoLeft){
+                            state = Snake.LEFT;
+                            return Snake.L;
+                        }else {
+                            return decideForUpOrDownUsedFromMoveLeftOrRight(canGoUp, canGoDown);
+                        }
                     }
                 }
                 break;
 
             case Snake.DOWN:
                 if(canGoDown){
-                    if (tPhase == 2 && myPos.y == yMin + 1) {
+                    if (canGoRight && tPhase == 2 && myPos.y == yMin + 1) {
                         tPhase = 1;
                         state = Snake.RIGHT;
-                        if(canGoRight){
-                            return Snake.R;
-                        }
+                        return Snake.R;
                     } else {
                         return Snake.D;
                     }
                 } else{
-                    if (tPhase > 0) {
+                    if (canGoRight && tPhase > 0) {
                         state = Snake.RIGHT;
-                        if(canGoRight){
-                            return Snake.R;
-                        }
+                        return Snake.R;
                     } else {
-                        if (myPos.x < xMax / 2 || !canGoLeft) { //cmdChain.contains(Snake.LEFT)) {
+                        if (canGoRight && (myPos.x < xMax / 2 || !canGoLeft)) { //cmdChain.contains(Snake.LEFT)) {
                             state = Snake.RIGHT;
-                            if(canGoRight){
-                                return Snake.R;
-                            }
-                        } else {
+                            return Snake.R;
+                        } else if(canGoLeft){
                             state = Snake.LEFT;
-                            if(canGoLeft){
-                                return Snake.L;
-                            }
+                            return Snake.L;
+                        }else{
+                            // looks lke we can't go LEFT or RIGHT...
+                            // and we CAN NOT GO DOWN :-/
                         }
                     }
-
                 }
                 break;
 
@@ -1532,21 +1536,18 @@ public class Session {
                                 return Snake.L;
                             }
                         }
-                    } else {
-                        if ((yMax - myPos.y) % 2 == 1) {
-                            // before we instantly decide to go up - we need to check, IF we can GO UP (and if not,
-                            // we simply really move to the LEFT (since we can!))
-                            if (canGoUp) {
-                                tPhase = 2;
-                                return Snake.U;
-                            } else {
-                                return Snake.L;
-                            }
+                    } else if ((yMax - myPos.y) % 2 == 1) {
+                        // before we instantly decide to go up - we need to check, IF we can GO UP (and if not,
+                        // we simply really move to the LEFT (since we can!))
+                        if (canGoUp) {
+                            tPhase = 2;
+                            return Snake.U;
                         } else {
                             return Snake.L;
                         }
+                    } else {
+                        return Snake.L;
                     }
-
 
                 } else {
 
@@ -1562,17 +1563,30 @@ public class Session {
                             //return Snake.L;
                             //OLD CODE:
                             //return moveDown();
-
+                            // NEW
+                            if (canGoDown) {
+                                return Snake.D;
+                            }else{
+                                // TODO ?!
+                            }
                         } else {
-                            if (canGoUp) {
+                            if (canGoRight) {
+                                state = Snake.RIGHT;
+                                return Snake.R;
+                            } else if (canGoUp) {
                                 state = Snake.RIGHT;
                                 return Snake.U;
-                            } else {
-                                //return Snake.L;
-                                //OLD CODE:
-                                //return moveDown();
                             }
                         }
+                    }else if(myPos.x == xMax){
+                        if (canGoLeft){
+                            state = Snake.LEFT;
+                            return Snake.L;
+                        }else if (canGoUp) {
+                            state = Snake.LEFT;
+                            return Snake.U;
+                        }
+
                     } else {
                         if ((yMax - myPos.y) % 2 == 1) {
                             // before we instantly decide to go up - we need to check, IF we can GO UP (and if not,
@@ -1584,20 +1598,38 @@ public class Session {
                                 //return Snake.L;
                                 //OLD CODE:
                                 //return moveDown();
+
+                                // NEW
+                                if(canGoDown){
+                                    return Snake.D;
+                                }
                             }
                         } else {
                             // return Snake.L;
                             // if we are in the pending mode, we prefer to go ALWAYS UP
-                            //OLD CODE:
-                            //return decideForUpOrDownUsedFromMoveLeftOrRight(Snake.LEFT);
+                            return decideForUpOrDownUsedFromMoveLeftOrRight(canGoUp, canGoDown);
                         }
                     }
-
                 }
                 break;
         }
 
         return finalMove;
     }
-    
+
+    private String decideForUpOrDownUsedFromMoveLeftOrRight(boolean canGoUp, boolean canGoDown) {
+        // if we are in the pending mode, we prefer to go ALWAYS-UP
+        if (tPhase > 0 && canGoUp && myPos.y < yMax) {
+            state = Snake.UP;
+            return Snake.U;
+        } else {
+            if (myPos.y < yMax / 2 || ! canGoDown) {
+                state = Snake.UP;
+                return Snake.U;
+            } else {
+                state = Snake.DOWN;
+                return Snake.D;
+            }
+        }
+    }
 }
