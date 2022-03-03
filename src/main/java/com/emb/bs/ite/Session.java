@@ -1240,7 +1240,7 @@ public class Session {
         // food...
 
         // TODO: WARN - WE NEED TO ENABLE THIS AGAIN!!!
-        List<Integer> killMoves = null;//checkSpecialMoves();
+        List<Integer> killMoves = /*null;/*/checkSpecialMoves();
 
         SortedSet<Integer> options = new TreeSet<Integer>();
         // make sure that we check initially our preferred direction...
@@ -1650,7 +1650,7 @@ public class Session {
             state = Snake.UP;
             return Snake.U;
         } else {
-            if (myHead.y < yMax / 2 || ! canGoDown) {
+            if (canGoUp && (myHead.y < yMax / 2 || !canGoDown)) {
                 state = Snake.UP;
                 return Snake.U;
             } else {
