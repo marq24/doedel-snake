@@ -1,14 +1,14 @@
 package com.emb.bs.ite;
 
 public class MoveWithState {
-    String move;
+    int move;
     Session.SavedState state;
 
-    public MoveWithState(String move) {
+    public MoveWithState(int move) {
         this.move = move;
     }
 
-    public MoveWithState(String move, Session s) {
+    public MoveWithState(int move, Session s) {
         this.move = move;
         if(s!=null) {
             state = s.saveState();
@@ -18,9 +18,9 @@ public class MoveWithState {
     @Override
     public boolean equals(Object obj) {
         if(obj instanceof MoveWithState){
-            return move.equals(((MoveWithState) obj).move);
-        }else if(obj instanceof String) {
-            return move.equals(obj);
+            return move == ((MoveWithState) obj).move;
+        }else if(obj instanceof Integer) {
+            return move == ((Integer) obj).intValue();
         }else{
             return super.equals(obj);
         }
@@ -28,6 +28,8 @@ public class MoveWithState {
 
     @Override
     public String toString() {
-        return move + " ["+state.toString()+"]";
+        return Session.getMoveIntAsString(move) + " ["+state.toString()+"]";
     }
+
+
 }

@@ -7,12 +7,36 @@ import org.slf4j.LoggerFactory;
 
 public class Session {
 
+    static final int UNKNOWN = -1;
+    static final int UP = 0;
+    static final int RIGHT = 1;
+    static final int DOWN = 2;
+    static final int LEFT = 3;
+    static final int DOOMED = 99;
+
+    static String getMoveIntAsString(int move) {
+        switch (move) {
+            case UP:
+                return Snake.U;
+            case RIGHT:
+                return Snake.R;
+            case DOWN:
+                return Snake.D;
+            case LEFT:
+                return Snake.L;
+            case DOOMED:
+                return "DOOMED";
+            default:
+                return "UNKNOWN";
+        }
+    }
+
     private static final HashMap<Integer, MoveWithState> moveKeyMap = new HashMap<>();
     static{
-        moveKeyMap.put(Snake.UP, new MoveWithState(Snake.U));
-        moveKeyMap.put(Snake.RIGHT, new MoveWithState(Snake.R));
-        moveKeyMap.put(Snake.DOWN, new MoveWithState(Snake.D));
-        moveKeyMap.put(Snake.LEFT, new MoveWithState(Snake.L));
+        moveKeyMap.put(UP, new MoveWithState(UP));
+        moveKeyMap.put(RIGHT, new MoveWithState(RIGHT));
+        moveKeyMap.put(DOWN, new MoveWithState(DOWN));
+        moveKeyMap.put(LEFT, new MoveWithState(LEFT));
     }
 
     private static final Logger LOG = LoggerFactory.getLogger(Session.class);
@@ -24,7 +48,7 @@ public class Session {
 
     // stateful stuff
     private int tPhase = 0;
-    private int state = Snake.UP;
+    private int state = UP;
     private int mFoodPrimaryDirection = -1;
     private int mFoodSecondaryDirection = -1;
     Point lastTurnTail = null;
@@ -312,43 +336,41 @@ public class Session {
         }
     }
 
-    private String moveDirection(int move, RiskState risk) {
-
-        String moveAsString = getMoveIntAsString(move);
+    private int moveDirection(int move, RiskState risk) {
         if(risk == null){
             risk = new RiskState();
         }else{
             risk.next();
         }
         if (risk.endReached) {
-            return Snake.REPEATLAST;
+            return DOOMED;
         } else if (risk.retry) {
             //logState(moveAsString);
             boolean canMove = false;
 
             switch (move){
-                case Snake.UP:
+                case UP:
                     canMove = canMoveUp();
                     break;
-                case Snake.RIGHT:
+                case RIGHT:
                     canMove = canMoveRight();
                     break;
-                case Snake.DOWN:
+                case DOWN:
                     canMove = canMoveDown();
                     break;
-                case Snake.LEFT:
+                case LEFT:
                     canMove = canMoveLeft();
                     break;
             }
             if (canMove) {
-                LOG.debug(moveAsString+": YES");
-                return moveAsString;
+                LOG.debug(getMoveIntAsString(move)+": YES");
+                return move;
             }else{
-                LOG.debug(moveAsString+": NO");
+                LOG.debug(getMoveIntAsString(move)+": NO");
                 return moveDirection(move, risk);
             }
         }
-        return null;
+        return UNKNOWN;
     }
 
     private int getAdvantage(){
@@ -397,10 +419,10 @@ public class Session {
         // make the killMove...
         if(myHealth > 19 && (mWrappedMode || myHead.y != 0 && myHead.x !=0 && myHead.y != Y-1 && myHead.x != X-1)) {
             ArrayList<Integer> checkedKills = new ArrayList<>();
-            checkForPossibleKillInDirection(Snake.UP, checkedKills);
-            checkForPossibleKillInDirection(Snake.RIGHT, checkedKills);
-            checkForPossibleKillInDirection(Snake.DOWN, checkedKills);
-            checkForPossibleKillInDirection(Snake.LEFT, checkedKills);
+            checkForPossibleKillInDirection(UP, checkedKills);
+            checkForPossibleKillInDirection(RIGHT, checkedKills);
+            checkForPossibleKillInDirection(DOWN, checkedKills);
+            checkForPossibleKillInDirection(LEFT, checkedKills);
             return checkedKills;
         }
         return null;
@@ -525,19 +547,19 @@ public class Session {
             int preferredXDirection = -1;
             if (mFoodPrimaryDirection == -1 || yDelta == 0 || xDelta == 0) {
                 if(mWrappedMode && Math.abs(yDelta) > Y/2) {
-                    preferredYDirection = Snake.UP;
+                    preferredYDirection = UP;
                 } else if (yDelta > 0) {
-                    preferredYDirection = Snake.DOWN;
+                    preferredYDirection = DOWN;
                 } else if (yDelta < 0) {
-                    preferredYDirection = Snake.UP;
+                    preferredYDirection = UP;
                 }
 
                 if((mWrappedMode && Math.abs(xDelta) > X/2)){
-                    preferredXDirection = Snake.RIGHT;
+                    preferredXDirection = RIGHT;
                 }else if (xDelta > 0) {
-                    preferredXDirection = Snake.LEFT;
+                    preferredXDirection = LEFT;
                 } else if (xDelta < 0){
-                    preferredXDirection = Snake.RIGHT;
+                    preferredXDirection = RIGHT;
                 }
 
                 if (Math.abs(yDelta) > Math.abs(xDelta)) {
@@ -674,31 +696,31 @@ public class Session {
         Point newPos = aPos.clone();
         if(mWrappedMode) {
             switch (move) {
-                case Snake.UP:
+                case UP:
                     newPos.y = (newPos.y + 1) % Y;
                     break;
-                case Snake.RIGHT:
+                case RIGHT:
                     newPos.x = (newPos.x + 1) % X;
                     break;
-                case Snake.DOWN:
+                case DOWN:
                     newPos.y = (newPos.y - 1 + Y) % Y;//newPos.y > 0 ? newPos.y - 1 : Y - 1;
                     break;
-                case Snake.LEFT:
+                case LEFT:
                     newPos.x = (newPos.x -1 + X) % X;//newPos.x > 0 ? newPos.x - 1 : X - 1;
                     break;
             }
         }else{
             switch (move) {
-                case Snake.UP:
+                case UP:
                     newPos.y++;
                     break;
-                case Snake.RIGHT:
+                case RIGHT:
                     newPos.x++;
                     break;
-                case Snake.DOWN:
+                case DOWN:
                     newPos.y--;
                     break;
-                case Snake.LEFT:
+                case LEFT:
                     newPos.x--;
                     break;
             }
@@ -769,7 +791,7 @@ public class Session {
                         && (!escapeFromHazard || hazardZone[newY][myHead.x] == 0)
                         && (enterHazardZone || myHealth > 96 || hazardZone[newY][myHead.x] == 0)
                         && (enterDangerZone || snakeNextMovePossibleLocations[newY][myHead.x] < myLen)
-                        && (enterNoGoZone || !willCreateLoop(Snake.UP, myHead, null,0));
+                        && (enterNoGoZone || !willCreateLoop(UP, myHead, null,0));
             }
         } catch (IndexOutOfBoundsException e) {
             LOG.info("IoB @ canMoveUp check...", e);
@@ -782,7 +804,7 @@ public class Session {
             int newY = (aPos.y + 1) % Y;
             return  (mWrappedMode || aPos.y < yMax)
                     && (map[newY][aPos.x] == 0 || map[newY][aPos.x] == 2)
-                    && (enterNoGoZone || !willCreateLoop(Snake.UP, aPos, map, c))
+                    && (enterNoGoZone || !willCreateLoop(UP, aPos, map, c))
                     ;
         } catch (IndexOutOfBoundsException e) {
             LOG.info("IoB @ canMoveUpLoop check...", e);
@@ -802,7 +824,7 @@ public class Session {
                         && (!escapeFromHazard || hazardZone[myHead.y][newX] == 0)
                         && (enterHazardZone || myHealth > 96 || hazardZone[myHead.y][newX] == 0)
                         && (enterDangerZone || snakeNextMovePossibleLocations[myHead.y][newX] < myLen)
-                        && (enterNoGoZone || !willCreateLoop(Snake.RIGHT, myHead, null, 0))
+                        && (enterNoGoZone || !willCreateLoop(RIGHT, myHead, null, 0))
                         ;
             }
         } catch (IndexOutOfBoundsException e) {
@@ -816,7 +838,7 @@ public class Session {
             int newX = (aPos.x + 1) % X;
             return  (mWrappedMode || aPos.x < xMax)
                     && (map[aPos.y][newX] == 0 || map[aPos.y][newX] == 2)
-                    && (enterNoGoZone || !willCreateLoop(Snake.RIGHT, aPos, map, c))
+                    && (enterNoGoZone || !willCreateLoop(RIGHT, aPos, map, c))
                     ;
         } catch (IndexOutOfBoundsException e) {
             LOG.info("IoB @ canMoveRightLoop check...", e);
@@ -836,7 +858,7 @@ public class Session {
                         && (!escapeFromHazard || hazardZone[newY][myHead.x] == 0)
                         && (enterHazardZone || myHealth > 96 || hazardZone[newY][myHead.x] == 0)
                         && (enterDangerZone || snakeNextMovePossibleLocations[newY][myHead.x] < myLen)
-                        && (enterNoGoZone || !willCreateLoop(Snake.DOWN, myHead, null, 0))
+                        && (enterNoGoZone || !willCreateLoop(DOWN, myHead, null, 0))
                         ;
             }
         } catch (IndexOutOfBoundsException e) {
@@ -850,7 +872,7 @@ public class Session {
             int newY = (aPos.y - 1 + Y) % Y; // aPos.y > 0 ? aPos.y - 1 : Y-1;
             return  (mWrappedMode || aPos.y > yMin)
                     && (map[newY][aPos.x] == 0 || map[newY][aPos.x] == 2)
-                    && (enterNoGoZone || !willCreateLoop(Snake.DOWN, aPos, map, c))
+                    && (enterNoGoZone || !willCreateLoop(DOWN, aPos, map, c))
                     ;
         } catch (IndexOutOfBoundsException e) {
             LOG.info("IoB @ canMoveDownLoop check...", e);
@@ -870,7 +892,7 @@ public class Session {
                         && (!escapeFromHazard || hazardZone[myHead.y][newX] == 0)
                         && (enterHazardZone || myHealth > 96 || hazardZone[myHead.y][newX] == 0)
                         && (enterDangerZone || snakeNextMovePossibleLocations[myHead.y][newX] < myLen)
-                        && (enterNoGoZone || !willCreateLoop(Snake.LEFT, myHead, null, 0))
+                        && (enterNoGoZone || !willCreateLoop(LEFT, myHead, null, 0))
                         ;
             }
         } catch (IndexOutOfBoundsException e) {
@@ -884,7 +906,7 @@ public class Session {
             int newX = (aPos.x - 1 + X) % X;//aPos.x > 0 ? aPos.x - 1 : X-1;
             return  (mWrappedMode || aPos.x > xMin)
                     && (map[aPos.y][newX] == 0 || map[aPos.y][newX] == 2)
-                    && (enterNoGoZone || !willCreateLoop(Snake.LEFT, aPos, map, c))
+                    && (enterNoGoZone || !willCreateLoop(LEFT, aPos, map, c))
                     ;
         } catch (IndexOutOfBoundsException e) {
             LOG.info("IoB @ canMoveLeftLoop check...", e);
@@ -912,35 +934,20 @@ public class Session {
         LOG.info(msg);
     }
 
-    String getMoveIntAsString(int move) {
-        switch (move) {
-            case Snake.UP:
-                return Snake.U;
-            case Snake.RIGHT:
-                return Snake.R;
-            case Snake.DOWN:
-                return Snake.D;
-            case Snake.LEFT:
-                return Snake.L;
-            default:
-                return "UNKNOWN";
-        }
-    }
-
-    int getMoveStringAsInt(String move) {
+    /*static int getMoveStringAsInt(String move) {
         switch (move) {
             case Snake.U:
-                return Snake.UP;
+                return UP;
             case Snake.R:
-                return Snake.RIGHT;
+                return RIGHT;
             case Snake.D:
-                return Snake.DOWN;
+                return DOWN;
             case Snake.L:
-                return Snake.LEFT;
+                return LEFT;
             default:
                 return -1;
         }
-    }
+    }*/
 
     void logBoard(Logger LOG) {
 
@@ -1038,7 +1045,7 @@ public class Session {
     /*ArrayList<Integer> cmdChain = null;
     int firstMoveToTry = -1;
     public String moveUp() {
-        if (cmdChain.size() < 4 && cmdChain.contains(Snake.UP)) {
+        if (cmdChain.size() < 4 && cmdChain.contains(UP)) {
             // here we can generate randomness!
             return moveRight();
         } else {
@@ -1049,12 +1056,12 @@ public class Session {
             } else {
                 LOG.debug("UP: NO");
                 // can't move...
-                if (myPos.x < xMax / 2 || cmdChain.contains(Snake.LEFT)) {
-                    state = Snake.RIGHT;
+                if (myPos.x < xMax / 2 || cmdChain.contains(LEFT)) {
+                    state = RIGHT;
                     //LOG.debug("UP: NO - check RIGHT x:" + pos.x + " < Xmax/2:"+ xMax/2);
                     return moveRight();
                 } else {
-                    state = Snake.LEFT;
+                    state = LEFT;
                     //LOG.debug("UP: NO - check LEFT");
                     return moveLeft();
                 }
@@ -1063,7 +1070,7 @@ public class Session {
     }
 
     public String moveRight() {
-        if (cmdChain.size() < 4 && cmdChain.contains(Snake.RIGHT)) {
+        if (cmdChain.size() < 4 && cmdChain.contains(RIGHT)) {
             return moveDown();
         } else {
             logState("RI");
@@ -1079,21 +1086,21 @@ public class Session {
                         // we are in the UPPER/RIGHT Corner while in TraverseMode! (something failed before)
                         LOG.info("WE SHOULD NEVER BE HERE in T-PHASE >0");
                         tPhase = 0;
-                        state = Snake.DOWN;
+                        state = DOWN;
                         return moveDown();
                     } else {
-                        state = Snake.LEFT;
+                        state = LEFT;
                         return moveUp();
                     }
                 } else {
-                    return decideForUpOrDownUsedFromMoveLeftOrRight(Snake.RIGHT);
+                    return decideForUpOrDownUsedFromMoveLeftOrRight(RIGHT);
                 }
             }
         }
     }
 
     public String moveDown() {
-        if (cmdChain.size() < 4 && cmdChain.contains(Snake.DOWN)) {
+        if (cmdChain.size() < 4 && cmdChain.contains(DOWN)) {
             return moveLeft();
         } else {
             logState("DO");
@@ -1104,7 +1111,7 @@ public class Session {
                 } else {
                     if (tPhase == 2 && myPos.y == yMin + 1) {
                         tPhase = 1;
-                        state = Snake.RIGHT;
+                        state = RIGHT;
                         return moveRight();
                     } else {
                         return Snake.D;
@@ -1114,14 +1121,14 @@ public class Session {
                 LOG.debug("DOWN: NO");
                 // can't move...
                 if (tPhase > 0) {
-                    state = Snake.RIGHT;
+                    state = RIGHT;
                     return moveRight();
                 } else {
-                    if (myPos.x < xMax / 2 || cmdChain.contains(Snake.LEFT)) {
-                        state = Snake.RIGHT;
+                    if (myPos.x < xMax / 2 || cmdChain.contains(LEFT)) {
+                        state = RIGHT;
                         return moveRight();
                     } else {
-                        state = Snake.LEFT;
+                        state = LEFT;
                         return moveLeft();
                     }
                 }
@@ -1129,7 +1136,7 @@ public class Session {
         }
     }
     public String moveLeft() {
-        if (cmdChain.size() < 4 && cmdChain.contains(Snake.LEFT)) {
+        if (cmdChain.size() < 4 && cmdChain.contains(LEFT)) {
             return moveUp();
         } else {
             logState("LE");
@@ -1146,12 +1153,12 @@ public class Session {
                         }
                         if (myPos.y == yMax) {
                             //LOG.debug("LEFT: STATE down -> RETURN: LEFT");
-                            state = Snake.DOWN;
+                            state = DOWN;
                             return Snake.L;
                         } else {
                             if (canMoveUp()) {
                                 //LOG.debug("LEFT: STATE right -> RETURN: UP");
-                                state = Snake.RIGHT;
+                                state = RIGHT;
                                 return moveUp();
                             } else {
                                 //LOG.debug("LEFT: RETURN: LEFT");
@@ -1184,13 +1191,13 @@ public class Session {
                         tPhase = 1;
                     }
                     if (myPos.y == yMax) {
-                        state = Snake.DOWN;
+                        state = DOWN;
                         //return Snake.L;
                         return moveDown();
 
                     } else {
                         if (canMoveUp()) {
-                            state = Snake.RIGHT;
+                            state = RIGHT;
                             return moveUp();
                         } else {
                             //return Snake.L;
@@ -1211,7 +1218,7 @@ public class Session {
                     } else {
                         //return Snake.L;
                         // if we are in the pending mode, we prefer to go ALWAYS UP
-                        return decideForUpOrDownUsedFromMoveLeftOrRight(Snake.LEFT);
+                        return decideForUpOrDownUsedFromMoveLeftOrRight(LEFT);
                     }
                 }
             }
@@ -1219,21 +1226,21 @@ public class Session {
     }
     private String decideForUpOrDownUsedFromMoveLeftOrRight(int cmd) {
         // if we are in the pending mode, we prefer to go ALWAYS-UP
-        if (tPhase > 0 && !cmdChain.contains(Snake.UP) && myPos.y < yMax) {
-            state = Snake.UP;
+        if (tPhase > 0 && !cmdChain.contains(UP) && myPos.y < yMax) {
+            state = UP;
             return moveUp();
         } else {
-            if (myPos.y < yMax / 2 || cmdChain.contains(Snake.DOWN)) {
-                state = Snake.UP;
+            if (myPos.y < yMax / 2 || cmdChain.contains(DOWN)) {
+                state = UP;
                 return moveUp();
             } else {
-                state = Snake.DOWN;
+                state = DOWN;
                 return moveDown();
             }
         }
     }*/
 
-    String calculateNextMoveOptions() {
+    int calculateNextMoveOptions() {
         int[] currentActiveBounds = new int[]{yMin, xMin, yMax, xMax};
         // checkSpecialMoves will also activate the 'goForFood' flag - so if this flag is set
         // we hat a primary and secondary direction in which we should move in order to find/get
@@ -1253,10 +1260,10 @@ public class Session {
             }
         }
         options.add(state);
-        options.add(Snake.UP);
-        options.add(Snake.RIGHT);
-        options.add(Snake.DOWN);
-        options.add(Snake.LEFT);
+        options.add(UP);
+        options.add(RIGHT);
+        options.add(DOWN);
+        options.add(LEFT);
 
         ArrayList<MoveWithState> possibleMoves = new ArrayList<>();
         Session.SavedState startState = saveState();
@@ -1279,8 +1286,8 @@ public class Session {
                 }
             }
             // ok checking the next direction...
-            String moveResult = moveDirection(possibleDirection, null);
-            if(moveResult !=null && !moveResult.equals(Snake.REPEATLAST)) {
+            int moveResult = moveDirection(possibleDirection, null);
+            if(moveResult != UNKNOWN && moveResult != DOOMED) {
                 MoveWithState move = new MoveWithState(moveResult, this);
                 possibleMoves.add(move);
                 LOG.info("EVALUATED WE can MOVE: " + move);
@@ -1299,7 +1306,7 @@ public class Session {
             LOG.error("***********************");
             LOG.error("DOOMED!");
             LOG.error("***********************");
-            return Snake.REPEATLAST;
+            return DOOMED;
         }
 
         if(possibleMoves.size() == 1){
@@ -1309,7 +1316,7 @@ public class Session {
         }
     }
 
-    private String getBestMove(ArrayList<MoveWithState> possibleMoves, List<Integer> killMoves) {
+    private int getBestMove(ArrayList<MoveWithState> possibleMoves, List<Integer> killMoves) {
         // ok we have plenty of alternative moves...
         // we should check, WHICH of them is the most promising...
 
@@ -1399,23 +1406,9 @@ public class Session {
         // we want our "first" (the preferred) item to be evaluated last...
         //Collections.reverse(possibleMoves);
 
-        TreeMap<Integer, ArrayList<String>> finalMoves = new TreeMap<>();
+        TreeMap<Integer, ArrayList<Integer>> finalMoves = new TreeMap<>();
         for (MoveWithState aMove : possibleMoves) {
-            Point resultingPos = null;
-            switch (aMove.move) {
-                case Snake.U:
-                    resultingPos = getNewPointForDirection(myHead, Snake.UP);
-                    break;
-                case Snake.R:
-                    resultingPos = getNewPointForDirection(myHead, Snake.RIGHT);
-                    break;
-                case Snake.D:
-                    resultingPos = getNewPointForDirection(myHead, Snake.DOWN);
-                    break;
-                case Snake.L:
-                    resultingPos = getNewPointForDirection(myHead, Snake.LEFT);
-                    break;
-            }
+            Point resultingPos = getNewPointForDirection(myHead, aMove.move);
 
             if (resultingPos != null) {
                 // checking if we are under direct threat
@@ -1440,7 +1433,7 @@ public class Session {
                     // array of all of them) - special handing, if 'snakeNextMovePossibleLocations' is also
                     // a foodPosition! (then a snake tha is currently 1 times shorter becomes equal)
                 }
-                ArrayList<String> moves = finalMoves.get(aMoveRisk);
+                ArrayList<Integer> moves = finalMoves.get(aMoveRisk);
                 if(moves == null) {
                     moves = new ArrayList<>();
                     finalMoves.put(aMoveRisk, moves);
@@ -1450,10 +1443,10 @@ public class Session {
         }
 
         // lowest Risk move options...
-        ArrayList<String> lowestRiskMoves = finalMoves.firstEntry().getValue();
+        ArrayList<Integer> lowestRiskMoves = finalMoves.firstEntry().getValue();
 
         // now we can check, if we can follow the default movement plan...
-        String finalMove = lowestRiskMoves.get(0);
+        int finalMove = lowestRiskMoves.get(0);
 
         // for all the possible MOVE directions we might have to set our BoardBounds?!
 
@@ -1463,27 +1456,27 @@ public class Session {
         boolean canGoLeft   = lowestRiskMoves.contains(Snake.L);
 
         switch (state){
-            case Snake.UP:
+            case UP:
                 if(canGoUp) {
-                    return Snake.U;
+                    return UP;
                 } else {
-                    if (myHead.x < xMax / 2 || !canGoLeft){ //cmdChain.contains(Snake.LEFT)) {
-                        state = Snake.RIGHT;
+                    if (myHead.x < xMax / 2 || !canGoLeft){ //cmdChain.contains(LEFT)) {
+                        state = RIGHT;
                         if(canGoRight){
-                            return Snake.R;
+                            return RIGHT;
                         }
                     } else {
-                        state = Snake.LEFT;
+                        state = LEFT;
                         if(canGoLeft){
-                            return Snake.L;
+                            return LEFT;
                         }
                     }
                 }
                 break;
 
-            case Snake.RIGHT:
+            case RIGHT:
                 if(canGoRight) {
-                    return Snake.R;
+                    return RIGHT;
                 }else{
                     if (myHead.x == xMax && tPhase > 0) {
                         if (canGoDown && myHead.y == yMax) {
@@ -1491,23 +1484,23 @@ public class Session {
                             // we are in the UPPER/RIGHT Corner while in TraverseMode! (something failed before)
                             LOG.info("WE SHOULD NEVER BE HERE in T-PHASE >0");
                             tPhase = 0;
-                            state = Snake.DOWN;
-                            return Snake.D;
+                            state = DOWN;
+                            return DOWN;
                         } else {
-                            state = Snake.LEFT;
+                            state = LEFT;
                             //OLD CODE:
                             //return moveUp();
                             // NEW
                             if(canGoUp){
-                                return Snake.U;
+                                return UP;
                             }
                         }
                     } else {
                         // NEW CODE... [when we are in the init phase - reached lower right corner
                         // we go to lower left corner]
                         if(myHead.y == yMin && tPhase == 0 && canGoLeft){
-                            state = Snake.LEFT;
-                            return Snake.L;
+                            state = LEFT;
+                            return LEFT;
                         }else {
                             return decideForUpOrDownUsedFromMoveLeftOrRight(canGoUp, canGoDown);
                         }
@@ -1515,26 +1508,26 @@ public class Session {
                 }
                 break;
 
-            case Snake.DOWN:
+            case DOWN:
                 if(canGoDown){
                     if (canGoRight && tPhase == 2 && myHead.y == yMin + 1) {
                         tPhase = 1;
-                        state = Snake.RIGHT;
-                        return Snake.R;
+                        state = RIGHT;
+                        return RIGHT;
                     } else {
-                        return Snake.D;
+                        return DOWN;
                     }
                 } else{
                     if (canGoRight && tPhase > 0) {
-                        state = Snake.RIGHT;
-                        return Snake.R;
+                        state = RIGHT;
+                        return RIGHT;
                     } else {
-                        if (canGoRight && (myHead.x < xMax / 2 || !canGoLeft)) { //cmdChain.contains(Snake.LEFT)) {
-                            state = Snake.RIGHT;
-                            return Snake.R;
+                        if (canGoRight && (myHead.x < xMax / 2 || !canGoLeft)) { //cmdChain.contains(LEFT)) {
+                            state = RIGHT;
+                            return RIGHT;
                         } else if(canGoLeft){
-                            state = Snake.LEFT;
-                            return Snake.L;
+                            state = LEFT;
+                            return LEFT;
                         }else{
                             // looks lke we can't go LEFT or RIGHT...
                             // and we CAN NOT GO DOWN :-/
@@ -1543,7 +1536,7 @@ public class Session {
                 }
                 break;
 
-            case Snake.LEFT:
+            case LEFT:
                 if(canGoLeft) {
 
                     // even if we "could" move to left - let's check, if we should/will follow our program...
@@ -1553,14 +1546,14 @@ public class Session {
                             tPhase = 1;
                         }
                         if (myHead.y == yMax) {
-                            state = Snake.DOWN;
-                            return Snake.L;
+                            state = DOWN;
+                            return LEFT;
                         } else {
                             if (canGoUp) {
-                                state = Snake.RIGHT;
-                                return Snake.U;
+                                state = RIGHT;
+                                return UP;
                             } else {
-                                return Snake.L;
+                                return LEFT;
                             }
                         }
                     } else if ((yMax - myHead.y) % 2 == 1) {
@@ -1568,12 +1561,12 @@ public class Session {
                         // we simply really move to the LEFT (since we can!))
                         if (canGoUp) {
                             tPhase = 2;
-                            return Snake.U;
+                            return UP;
                         } else {
-                            return Snake.L;
+                            return LEFT;
                         }
                     } else {
-                        return Snake.L;
+                        return LEFT;
                     }
 
                 } else {
@@ -1586,32 +1579,32 @@ public class Session {
                             tPhase = 1;
                         }
                         if (myHead.y == yMax) {
-                            state = Snake.DOWN;
+                            state = DOWN;
                             //return Snake.L;
                             //OLD CODE:
                             //return moveDown();
                             // NEW
                             if (canGoDown) {
-                                return Snake.D;
+                                return DOWN;
                             }else{
                                 // TODO ?!
                             }
                         } else {
                             if (canGoRight) {
-                                state = Snake.RIGHT;
-                                return Snake.R;
+                                state = RIGHT;
+                                return RIGHT;
                             } else if (canGoUp) {
-                                state = Snake.RIGHT;
-                                return Snake.U;
+                                state = RIGHT;
+                                return UP;
                             }
                         }
                     }else if(myHead.x == xMax){
                         if (canGoLeft){
-                            state = Snake.LEFT;
-                            return Snake.L;
+                            state = LEFT;
+                            return LEFT;
                         }else if (canGoUp) {
-                            state = Snake.LEFT;
-                            return Snake.U;
+                            state = LEFT;
+                            return UP;
                         }
 
                     } else {
@@ -1620,7 +1613,7 @@ public class Session {
                             // we simply really move to the LEFT (since we can!))
                             if (canGoUp) {
                                 tPhase = 2;
-                                return Snake.U;
+                                return UP;
                             } else {
                                 //return Snake.L;
                                 //OLD CODE:
@@ -1628,7 +1621,7 @@ public class Session {
 
                                 // NEW
                                 if(canGoDown){
-                                    return Snake.D;
+                                    return DOWN;
                                 }
                             }
                         } else {
@@ -1644,18 +1637,18 @@ public class Session {
         return finalMove;
     }
 
-    private String decideForUpOrDownUsedFromMoveLeftOrRight(boolean canGoUp, boolean canGoDown) {
+    private int decideForUpOrDownUsedFromMoveLeftOrRight(boolean canGoUp, boolean canGoDown) {
         // if we are in the pending mode, we prefer to go ALWAYS-UP
         if (tPhase > 0 && canGoUp && myHead.y < yMax) {
-            state = Snake.UP;
-            return Snake.U;
+            state = UP;
+            return UP;
         } else {
             if (canGoUp && (myHead.y < yMax / 2 || !canGoDown)) {
-                state = Snake.UP;
-                return Snake.U;
+                state = UP;
+                return UP;
             } else {
-                state = Snake.DOWN;
-                return Snake.D;
+                state = DOWN;
+                return DOWN;
             }
         }
     }

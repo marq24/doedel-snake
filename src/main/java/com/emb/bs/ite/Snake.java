@@ -26,13 +26,6 @@ public class Snake {
     private static final Handler HANDLER = new Handler();
     private static final Logger LOG = LoggerFactory.getLogger(Snake.class);
 
-    static final int UP = 0;
-    static final int RIGHT = 1;
-    static final int DOWN = 2;
-    static final int LEFT = 3;
-
-    static final String REPEATLAST = "repeat";
-
     static final String U = "up";
     static final String D = "down";
     static final String L = "left";
@@ -184,9 +177,10 @@ public class Snake {
                 }
                 readCurrentBoardStatusIntoSession(moveRequest, gameType, s);
 
-                String move = s.calculateNextMoveOptions();
+                int moveAsInt = s.calculateNextMoveOptions();
+                String move = s.getMoveIntAsString(moveAsInt);
 
-                if(move.equals(REPEATLAST)){
+                if(moveAsInt == Session.DOOMED){
                     // OK we are DOOMED anyhow - so we can do what ever
                     // we want -> so we just repeat the last move...
                     move = s.LASTMOVE;
@@ -198,7 +192,10 @@ public class Snake {
                     s.LASTMOVE = move;
                 }
 
-                Point resultPos = s.getNewPointForDirection(s.myHead, s.getMoveStringAsInt(move));
+                // when we will eat food with our next move, then out tail will stay
+                // where he currently is... in any other case we will update
+                // the 'lastTurnTail'
+                Point resultPos = s.getNewPointForDirection(s.myHead, moveAsInt);
                 if(!s.foodPlaces.contains(resultPos)){
                     s.lastTurnTail = s.myTail;
                 }
@@ -215,52 +212,6 @@ public class Snake {
                 return response;
             }
         }
-
-        /*private String getMoveWithLowestRiskFromAlternatives(Session s, String move, ArrayList<String> altMoves) {
-            // since we want to find the move with the lowest risk, we add the initial move
-            // so we compare all risks
-            altMoves.add(move);
-
-            // comparing RISK of "move" with alternative moves
-            int minRisk = Integer.MAX_VALUE;
-
-            for (String aMove : altMoves) {
-                Point altPos = null;
-                switch (aMove) {
-                    case U:
-                        altPos = s.getNewPointForDirection(s.myPos, UP);
-                        break;
-                    case R:
-                        altPos = s.getNewPointForDirection(s.myPos, RIGHT);
-                        break;
-                    case D:
-                        altPos = s.getNewPointForDirection(s.myPos, DOWN);
-                        break;
-                    case L:
-                        altPos = s.getNewPointForDirection(s.myPos, LEFT);
-                        break;
-                }
-
-                if (altPos != null) {
-                    int aMoveRisk = s.snakeNextMovePossibleLocations[altPos.y][altPos.x];
-                    if (aMoveRisk == 0 && !s.wrappedMode) {
-                        // ok no other snake is here in the area - but if we are a move to the BORDER
-                        // then consider this move as a more risk move...
-                        if (altPos.y == 0 || altPos.y == s.Y - 1) {
-                            aMoveRisk++;
-                        }
-                        if (altPos.x == 0 || altPos.x == s.X - 1) {
-                            aMoveRisk++;
-                        }
-                    }
-                    minRisk = Math.min(minRisk, aMoveRisk);
-                    if (aMoveRisk == minRisk) {
-                        move = aMove;
-                    }
-                }
-            }
-            return move;
-        }*/
 
         private void readCurrentBoardStatusIntoSession(JsonNode moveRequest, String rulesetName, Session s) {
             s.turn = moveRequest.get("turn").asInt();
