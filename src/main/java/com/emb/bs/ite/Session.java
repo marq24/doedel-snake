@@ -36,7 +36,8 @@ public class Session {
 
     String LASTMOVE = null;
 
-    Point myPos;
+    Point myHead;
+    Point myTail;
     int myLen;
     int myHealth;
 
@@ -206,10 +207,10 @@ public class Session {
         // case we can/will disable 'avoid borders' flag...
 
         if (!enterBorderZone) {
-            if (    myPos.y == 0 ||
-                    myPos.y == Y - 1 ||
-                    myPos.x == 0 ||
-                    myPos.x == X - 1
+            if (    myHead.y == 0 ||
+                    myHead.y == Y - 1 ||
+                    myHead.x == 0 ||
+                    myHead.x == X - 1
             ) {
                 escapeFromBorder = true;
             }
@@ -218,7 +219,7 @@ public class Session {
         mHazardPresent = hazardDataIsPresent;
         if(mHazardPresent) {
             if (!enterHazardZone) {
-                if (hazardZone[myPos.y][myPos.x] > 0 && myHealth < 95) {
+                if (hazardZone[myHead.y][myHead.x] > 0 && myHealth < 95) {
                     escapeFromHazard = true;
                 }
             }
@@ -393,7 +394,7 @@ public class Session {
     private List<Integer> checkKillMoves(){
         // verify if this IF condition makes sense here - we might want to decide later, IF we are going to
         // make the killMove...
-        if(myHealth > 19 && (mWrappedMode || myPos.y != 0 && myPos.x !=0 && myPos.y != Y-1 && myPos.x != X-1)) {
+        if(myHealth > 19 && (mWrappedMode || myHead.y != 0 && myHead.x !=0 && myHead.y != Y-1 && myHead.x != X-1)) {
             ArrayList<Integer> checkedKills = new ArrayList<>();
             checkForPossibleKillInDirection(Snake.UP, checkedKills);
             checkForPossibleKillInDirection(Snake.RIGHT, checkedKills);
@@ -405,7 +406,7 @@ public class Session {
     }
 
     private void checkForPossibleKillInDirection(int move, ArrayList<Integer> resList) {
-        Point p = getNewPointForDirection(myPos, move);
+        Point p = getNewPointForDirection(myHead, move);
         try {
             if(myBody[p.y][p.x] == 0 && snakeBodies[p.y][p.x] == 0) {
                 int val = snakeNextMovePossibleLocations[p.y][p.x];
@@ -434,16 +435,16 @@ public class Session {
             if(turn > 5 && !mWrappedMode) {
                 // food in CORNERS is TOXIC (but if we are already IN the corner we will
                 // take it!
-                if (!(myPos.x == 0 && myPos.y <= 1) || (myPos.x <= 1 && myPos.y == 0)) {
+                if (!(myHead.x == 0 && myHead.y <= 1) || (myHead.x <= 1 && myHead.y == 0)) {
                     availableFoods.remove(new Point(0, 0));
                 }
-                if (!(myPos.x == X - 1 && myPos.y <= 1) || (myPos.x <= X - 2 && myPos.y == 0)) {
+                if (!(myHead.x == X - 1 && myHead.y <= 1) || (myHead.x <= X - 2 && myHead.y == 0)) {
                     availableFoods.remove(new Point(0, X - 1));
                 }
-                if (!(myPos.x == 0 && myPos.y <= Y - 2) || (myPos.x <= 1 && myPos.y == Y - 1)) {
+                if (!(myHead.x == 0 && myHead.y <= Y - 2) || (myHead.x <= 1 && myHead.y == Y - 1)) {
                     availableFoods.remove(new Point(Y - 1, 0));
                 }
-                if (!(myPos.x == X - 1 && myPos.y >= Y - 2) || (myPos.x >= X - 2 && myPos.y == Y - 1)) {
+                if (!(myHead.x == X - 1 && myHead.y >= Y - 2) || (myHead.x >= X - 2 && myHead.y == Y - 1)) {
                     availableFoods.remove(new Point(Y - 1, X - 1));
                 }
             }
@@ -460,7 +461,7 @@ public class Session {
 
         TreeMap<Integer, ArrayList<Point>> foodTargetsByDistance = new TreeMap<>();
         for (Point f : availableFoods) {
-            int dist = getFoodDistance(f, myPos);
+            int dist = getFoodDistance(f, myHead);
             if(!isLocatedAtBorder(f) || dist < 3 || (dist < 4 && myHealth < 65) || myHealth < 16) {
                 boolean addFoodAsTarget = true;
                 for (Point h : snakeHeads) {
@@ -517,8 +518,8 @@ public class Session {
             }
             foodActive = closestFood;
 
-            int yDelta = myPos.y - closestFood.y;
-            int xDelta = myPos.x - closestFood.x;
+            int yDelta = myHead.y - closestFood.y;
+            int xDelta = myHead.x - closestFood.x;
             int preferredYDirection = -1;
             int preferredXDirection = -1;
             if (mFoodPrimaryDirection == -1 || yDelta == 0 || xDelta == 0) {
@@ -604,20 +605,20 @@ public class Session {
     private int countBlockingsBetweenFoodAndHead(Point cfp) {
         try {
             int blocks = 0;
-            int yDelta = myPos.y - cfp.y;
-            int xDelta = myPos.x - cfp.x;
+            int yDelta = myHead.y - cfp.y;
+            int xDelta = myHead.x - cfp.x;
             if (Math.abs(yDelta) > Math.abs(xDelta)) {
                 if (yDelta > 0) {
                     // we need to go DOWN to the food...
-                    for (int i = cfp.y + 1; i < myPos.y; i++) {
-                        if (myBody[i][myPos.x] > 0 || snakeBodies[i][myPos.x] > 0) {
+                    for (int i = cfp.y + 1; i < myHead.y; i++) {
+                        if (myBody[i][myHead.x] > 0 || snakeBodies[i][myHead.x] > 0) {
                             blocks++;
                         }
                     }
                 } else {
                     // we need to go UP to the food...
-                    for (int i = myPos.y + 1; i < cfp.y; i++) {
-                        if (myBody[i][myPos.x] > 0 || snakeBodies[i][myPos.x] > 0) {
+                    for (int i = myHead.y + 1; i < cfp.y; i++) {
+                        if (myBody[i][myHead.x] > 0 || snakeBodies[i][myHead.x] > 0) {
                             blocks++;
                         }
                     }
@@ -625,15 +626,15 @@ public class Session {
             } else {
                 if (xDelta > 0) {
                     // we need to go LEFT to the food...
-                    for (int i = cfp.x + 1; i < myPos.x; i++) {
-                        if (myBody[myPos.y][i] > 0 || snakeBodies[myPos.y][i] > 0) {
+                    for (int i = cfp.x + 1; i < myHead.x; i++) {
+                        if (myBody[myHead.y][i] > 0 || snakeBodies[myHead.y][i] > 0) {
                             blocks++;
                         }
                     }
                 } else {
                     // we need to go RIGHT to the food...
-                    for (int i = myPos.x + 1; i < cfp.x; i++) {
-                        if (myBody[myPos.y][i] > 0 || snakeBodies[myPos.y][i] > 0) {
+                    for (int i = myHead.x + 1; i < cfp.x; i++) {
+                        if (myBody[myHead.y][i] > 0 || snakeBodies[myHead.y][i] > 0) {
                             blocks++;
                         }
                     }
@@ -707,19 +708,25 @@ public class Session {
     private boolean willCreateLoop(int move, Point aPos, int[][] finalMap, int count) {
         // OK we have to check, if with the "planed" next move we will create a closed loop structure (either
         // with ourselves, with the border or with any enemy...
+        // when we reach our own tail, then we will fit into the hole for sure!
         try {
             count++;
             if(count <= MAXDEEP) {
                 Point newPos = getNewPointForDirection(aPos, move);
-                // simple check, if we can move from the new position to any other location
+                if(newPos.equals(myTail)){
+                    return false;
+                }
+                    // simple check, if we can move from the new position to any other location
 
                 // so in the finalMap we have the picture of the MOVE RESULT
                 if(finalMap == null) {
                     finalMap = new int[Y][X];
-                    finalMap[myPos.y][myPos.x] = 1;
+                    finalMap[myHead.y][myHead.x] = 1;
                     for (int y = 0; y < X; y++) {
                         for (int x = 0; x < X; x++) {
-                            if (myBody[y][x] > 0) {
+                            if (myTail.y == y && myTail.x == x) {
+                                finalMap[y][x] = 2; // the GOLDEN ASS
+                            }else if (myBody[y][x] > 0) {
                                 finalMap[y][x] = 1;
                             } else if (snakeBodies[y][x] > 0) {
                                 finalMap[y][x] = 1;
@@ -751,17 +758,17 @@ public class Session {
 
     private boolean canMoveUp() {
         try {
-            if (escapeFromBorder && (myPos.x == 0 || myPos.x == X - 1)) {
+            if (escapeFromBorder && (myHead.x == 0 || myHead.x == X - 1)) {
                 return false;
             } else {
-                int newY = (myPos.y + 1) % Y;
-                return  (mWrappedMode || myPos.y < yMax)
-                        && myBody[newY][myPos.x] == 0
-                        && snakeBodies[newY][myPos.x] == 0
-                        && (!escapeFromHazard || hazardZone[newY][myPos.x] == 0)
-                        && (enterHazardZone || myHealth > 96 || hazardZone[newY][myPos.x] == 0)
-                        && (enterDangerZone || snakeNextMovePossibleLocations[newY][myPos.x] < myLen)
-                        && (enterNoGoZone || !willCreateLoop(Snake.UP, myPos, null,0));
+                int newY = (myHead.y + 1) % Y;
+                return  (mWrappedMode || myHead.y < yMax)
+                        && myBody[newY][myHead.x] == 0
+                        && snakeBodies[newY][myHead.x] == 0
+                        && (!escapeFromHazard || hazardZone[newY][myHead.x] == 0)
+                        && (enterHazardZone || myHealth > 96 || hazardZone[newY][myHead.x] == 0)
+                        && (enterDangerZone || snakeNextMovePossibleLocations[newY][myHead.x] < myLen)
+                        && (enterNoGoZone || !willCreateLoop(Snake.UP, myHead, null,0));
             }
         } catch (IndexOutOfBoundsException e) {
             LOG.info("IoB @ canMoveUp check...", e);
@@ -773,7 +780,7 @@ public class Session {
         try {
             int newY = (aPos.y + 1) % Y;
             return  (mWrappedMode || aPos.y < yMax)
-                    && map[newY][aPos.x] == 0
+                    && (map[newY][aPos.x] == 0 || map[newY][aPos.x] == 2)
                     && (enterNoGoZone || !willCreateLoop(Snake.UP, aPos, map, c))
                     ;
         } catch (IndexOutOfBoundsException e) {
@@ -784,17 +791,17 @@ public class Session {
 
     private boolean canMoveRight() {
         try {
-            if (escapeFromBorder && (myPos.y == 0 || myPos.y == Y - 1)) {
+            if (escapeFromBorder && (myHead.y == 0 || myHead.y == Y - 1)) {
                 return false;
             } else {
-                int newX = (myPos.x + 1) % X;
-                return  (mWrappedMode || myPos.x < xMax)
-                        && myBody[myPos.y][newX] == 0
-                        && snakeBodies[myPos.y][newX] == 0
-                        && (!escapeFromHazard || hazardZone[myPos.y][newX] == 0)
-                        && (enterHazardZone || myHealth > 96 || hazardZone[myPos.y][newX] == 0)
-                        && (enterDangerZone || snakeNextMovePossibleLocations[myPos.y][newX] < myLen)
-                        && (enterNoGoZone || !willCreateLoop(Snake.RIGHT, myPos, null, 0))
+                int newX = (myHead.x + 1) % X;
+                return  (mWrappedMode || myHead.x < xMax)
+                        && myBody[myHead.y][newX] == 0
+                        && snakeBodies[myHead.y][newX] == 0
+                        && (!escapeFromHazard || hazardZone[myHead.y][newX] == 0)
+                        && (enterHazardZone || myHealth > 96 || hazardZone[myHead.y][newX] == 0)
+                        && (enterDangerZone || snakeNextMovePossibleLocations[myHead.y][newX] < myLen)
+                        && (enterNoGoZone || !willCreateLoop(Snake.RIGHT, myHead, null, 0))
                         ;
             }
         } catch (IndexOutOfBoundsException e) {
@@ -807,7 +814,7 @@ public class Session {
         try {
             int newX = (aPos.x + 1) % X;
             return  (mWrappedMode || aPos.x < xMax)
-                    && map[aPos.y][newX] == 0
+                    && (map[aPos.y][newX] == 0 || map[aPos.y][newX] == 2)
                     && (enterNoGoZone || !willCreateLoop(Snake.RIGHT, aPos, map, c))
                     ;
         } catch (IndexOutOfBoundsException e) {
@@ -818,17 +825,17 @@ public class Session {
 
     private boolean canMoveDown() {
         try {
-            if (escapeFromBorder && (myPos.x == 0 || myPos.x == X - 1)) {
+            if (escapeFromBorder && (myHead.x == 0 || myHead.x == X - 1)) {
                 return false;
             } else {
-                int newY = (myPos.y - 1 + Y) % Y;//myPos.y > 0 ? myPos.y - 1 : Y-1;
-                return  (mWrappedMode || myPos.y > yMin)
-                        && myBody[newY][myPos.x] == 0
-                        && snakeBodies[newY][myPos.x] == 0
-                        && (!escapeFromHazard || hazardZone[newY][myPos.x] == 0)
-                        && (enterHazardZone || myHealth > 96 || hazardZone[newY][myPos.x] == 0)
-                        && (enterDangerZone || snakeNextMovePossibleLocations[newY][myPos.x] < myLen)
-                        && (enterNoGoZone || !willCreateLoop(Snake.DOWN, myPos, null, 0))
+                int newY = (myHead.y - 1 + Y) % Y;//myPos.y > 0 ? myPos.y - 1 : Y-1;
+                return  (mWrappedMode || myHead.y > yMin)
+                        && myBody[newY][myHead.x] == 0
+                        && snakeBodies[newY][myHead.x] == 0
+                        && (!escapeFromHazard || hazardZone[newY][myHead.x] == 0)
+                        && (enterHazardZone || myHealth > 96 || hazardZone[newY][myHead.x] == 0)
+                        && (enterDangerZone || snakeNextMovePossibleLocations[newY][myHead.x] < myLen)
+                        && (enterNoGoZone || !willCreateLoop(Snake.DOWN, myHead, null, 0))
                         ;
             }
         } catch (IndexOutOfBoundsException e) {
@@ -841,7 +848,7 @@ public class Session {
         try {
             int newY = (aPos.y - 1 + Y) % Y; // aPos.y > 0 ? aPos.y - 1 : Y-1;
             return  (mWrappedMode || aPos.y > yMin)
-                    && map[newY][aPos.x] == 0
+                    && (map[newY][aPos.x] == 0 || map[newY][aPos.x] == 2)
                     && (enterNoGoZone || !willCreateLoop(Snake.DOWN, aPos, map, c))
                     ;
         } catch (IndexOutOfBoundsException e) {
@@ -852,17 +859,17 @@ public class Session {
 
     private boolean canMoveLeft() {
         try {
-            if (escapeFromBorder && (myPos.y == 0 || myPos.y == Y - 1)) {
+            if (escapeFromBorder && (myHead.y == 0 || myHead.y == Y - 1)) {
                 return false;
             } else {
-                int newX = (myPos.x - 1 + X) % X;//myPos.x > 0 ? myPos.x - 1 : X-1;
-                return  (mWrappedMode || myPos.x > xMin)
-                        && myBody[myPos.y][newX] == 0
-                        && snakeBodies[myPos.y][newX] == 0
-                        && (!escapeFromHazard || hazardZone[myPos.y][newX] == 0)
-                        && (enterHazardZone || myHealth > 96 || hazardZone[myPos.y][newX] == 0)
-                        && (enterDangerZone || snakeNextMovePossibleLocations[myPos.y][newX] < myLen)
-                        && (enterNoGoZone || !willCreateLoop(Snake.LEFT, myPos, null, 0))
+                int newX = (myHead.x - 1 + X) % X;//myPos.x > 0 ? myPos.x - 1 : X-1;
+                return  (mWrappedMode || myHead.x > xMin)
+                        && myBody[myHead.y][newX] == 0
+                        && snakeBodies[myHead.y][newX] == 0
+                        && (!escapeFromHazard || hazardZone[myHead.y][newX] == 0)
+                        && (enterHazardZone || myHealth > 96 || hazardZone[myHead.y][newX] == 0)
+                        && (enterDangerZone || snakeNextMovePossibleLocations[myHead.y][newX] < myLen)
+                        && (enterNoGoZone || !willCreateLoop(Snake.LEFT, myHead, null, 0))
                         ;
             }
         } catch (IndexOutOfBoundsException e) {
@@ -875,7 +882,7 @@ public class Session {
         try {
             int newX = (aPos.x - 1 + X) % X;//aPos.x > 0 ? aPos.x - 1 : X-1;
             return  (mWrappedMode || aPos.x > xMin)
-                    && map[aPos.y][newX] == 0
+                    && (map[aPos.y][newX] == 0 || map[aPos.y][newX] == 2)
                     && (enterNoGoZone || !willCreateLoop(Snake.LEFT, aPos, map, c))
                     ;
         } catch (IndexOutOfBoundsException e) {
@@ -932,7 +939,7 @@ public class Session {
             b.append(y % 10);
             b.append('│');
             for (int x = 0; x < X; x++) {
-                if (myPos.x == x && myPos.y == y) {
+                if (myHead.x == x && myHead.y == y) {
                     b.append("X");
                 } else if (myBody[y][x] == 1) {
                     b.append('c');
@@ -1213,6 +1220,8 @@ public class Session {
         // checkSpecialMoves will also activate the 'goForFood' flag - so if this flag is set
         // we hat a primary and secondary direction in which we should move in order to find/get
         // food...
+
+        // TODO: WARN - WE NEED TO ENABLE THIS AGAIN!!!
         List<Integer> killMoves = null;//checkSpecialMoves();
 
         SortedSet<Integer> options = new TreeSet<Integer>();
@@ -1377,16 +1386,16 @@ public class Session {
             Point resultingPos = null;
             switch (aMove.move) {
                 case Snake.U:
-                    resultingPos = getNewPointForDirection(myPos, Snake.UP);
+                    resultingPos = getNewPointForDirection(myHead, Snake.UP);
                     break;
                 case Snake.R:
-                    resultingPos = getNewPointForDirection(myPos, Snake.RIGHT);
+                    resultingPos = getNewPointForDirection(myHead, Snake.RIGHT);
                     break;
                 case Snake.D:
-                    resultingPos = getNewPointForDirection(myPos, Snake.DOWN);
+                    resultingPos = getNewPointForDirection(myHead, Snake.DOWN);
                     break;
                 case Snake.L:
-                    resultingPos = getNewPointForDirection(myPos, Snake.LEFT);
+                    resultingPos = getNewPointForDirection(myHead, Snake.LEFT);
                     break;
             }
 
@@ -1440,7 +1449,7 @@ public class Session {
                 if(canGoUp) {
                     return Snake.U;
                 } else {
-                    if (myPos.x < xMax / 2 || !canGoLeft){ //cmdChain.contains(Snake.LEFT)) {
+                    if (myHead.x < xMax / 2 || !canGoLeft){ //cmdChain.contains(Snake.LEFT)) {
                         state = Snake.RIGHT;
                         if(canGoRight){
                             return Snake.R;
@@ -1458,8 +1467,8 @@ public class Session {
                 if(canGoRight) {
                     return Snake.R;
                 }else{
-                    if (myPos.x == xMax && tPhase > 0) {
-                        if (canGoDown && myPos.y == yMax) {
+                    if (myHead.x == xMax && tPhase > 0) {
+                        if (canGoDown && myHead.y == yMax) {
                             // we should NEVER BE HERE!!
                             // we are in the UPPER/RIGHT Corner while in TraverseMode! (something failed before)
                             LOG.info("WE SHOULD NEVER BE HERE in T-PHASE >0");
@@ -1478,7 +1487,7 @@ public class Session {
                     } else {
                         // NEW CODE... [when we are in the init phase - reached lower right corner
                         // we go to lower left corner]
-                        if(myPos.y == yMin && tPhase == 0 && canGoLeft){
+                        if(myHead.y == yMin && tPhase == 0 && canGoLeft){
                             state = Snake.LEFT;
                             return Snake.L;
                         }else {
@@ -1490,7 +1499,7 @@ public class Session {
 
             case Snake.DOWN:
                 if(canGoDown){
-                    if (canGoRight && tPhase == 2 && myPos.y == yMin + 1) {
+                    if (canGoRight && tPhase == 2 && myHead.y == yMin + 1) {
                         tPhase = 1;
                         state = Snake.RIGHT;
                         return Snake.R;
@@ -1502,7 +1511,7 @@ public class Session {
                         state = Snake.RIGHT;
                         return Snake.R;
                     } else {
-                        if (canGoRight && (myPos.x < xMax / 2 || !canGoLeft)) { //cmdChain.contains(Snake.LEFT)) {
+                        if (canGoRight && (myHead.x < xMax / 2 || !canGoLeft)) { //cmdChain.contains(Snake.LEFT)) {
                             state = Snake.RIGHT;
                             return Snake.R;
                         } else if(canGoLeft){
@@ -1520,12 +1529,12 @@ public class Session {
                 if(canGoLeft) {
 
                     // even if we "could" move to left - let's check, if we should/will follow our program...
-                    if (myPos.x == xMin + 1) {
+                    if (myHead.x == xMin + 1) {
                         // We are at the left-hand "border" side of the board
                         if (tPhase != 2) {
                             tPhase = 1;
                         }
-                        if (myPos.y == yMax) {
+                        if (myHead.y == yMax) {
                             state = Snake.DOWN;
                             return Snake.L;
                         } else {
@@ -1536,7 +1545,7 @@ public class Session {
                                 return Snake.L;
                             }
                         }
-                    } else if ((yMax - myPos.y) % 2 == 1) {
+                    } else if ((yMax - myHead.y) % 2 == 1) {
                         // before we instantly decide to go up - we need to check, IF we can GO UP (and if not,
                         // we simply really move to the LEFT (since we can!))
                         if (canGoUp) {
@@ -1553,12 +1562,12 @@ public class Session {
 
                     // IF we can't go LEFT, then we should check, if we are at our special position
                     // SEE also 'YES' part (only difference is, that we do not MOVE to LEFT here!)
-                    if (myPos.x == xMin + 1) {
+                    if (myHead.x == xMin + 1) {
                         // We are at the left-hand "border" side of the board
                         if (tPhase != 2) {
                             tPhase = 1;
                         }
-                        if (myPos.y == yMax) {
+                        if (myHead.y == yMax) {
                             state = Snake.DOWN;
                             //return Snake.L;
                             //OLD CODE:
@@ -1578,7 +1587,7 @@ public class Session {
                                 return Snake.U;
                             }
                         }
-                    }else if(myPos.x == xMax){
+                    }else if(myHead.x == xMax){
                         if (canGoLeft){
                             state = Snake.LEFT;
                             return Snake.L;
@@ -1588,7 +1597,7 @@ public class Session {
                         }
 
                     } else {
-                        if ((yMax - myPos.y) % 2 == 1) {
+                        if ((yMax - myHead.y) % 2 == 1) {
                             // before we instantly decide to go up - we need to check, IF we can GO UP (and if not,
                             // we simply really move to the LEFT (since we can!))
                             if (canGoUp) {
@@ -1619,11 +1628,11 @@ public class Session {
 
     private String decideForUpOrDownUsedFromMoveLeftOrRight(boolean canGoUp, boolean canGoDown) {
         // if we are in the pending mode, we prefer to go ALWAYS-UP
-        if (tPhase > 0 && canGoUp && myPos.y < yMax) {
+        if (tPhase > 0 && canGoUp && myHead.y < yMax) {
             state = Snake.UP;
             return Snake.U;
         } else {
-            if (myPos.y < yMax / 2 || ! canGoDown) {
+            if (myHead.y < yMax / 2 || ! canGoDown) {
                 state = Snake.UP;
                 return Snake.U;
             } else {

@@ -272,13 +272,14 @@ public class Snake {
             s.initSessionForTurn(rulesetName, board.get("height").asInt(), board.get("width").asInt());
 
             JsonNode head = you.get("head");
-            s.myPos = new Point(head);
+            s.myHead = new Point(head);
             // adding also myHead to the body array (to allow
             // simple NoGoZone-Detection
-            s.myBody[s.myPos.y][s.myPos.x] = s.myLen;
+            s.myBody[s.myHead.y][s.myHead.x] = s.myLen;
 
             JsonNode myBody = you.get("body");
             int myBodyLen = myBody.size()-1;
+            s.myTail = new Point(myBody.get(myBodyLen-1));
             for (int i = 1; i < myBodyLen; i++) {
                 Point p = new Point(myBody.get(i));
                 s.myBody[p.y][p.x] = 1;
