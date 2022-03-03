@@ -109,7 +109,7 @@ public class Session {
         @Override
         public String toString() {
                 return
-                      " st:" + getMoveIntAsString(state).substring(0, 2).toUpperCase() + "[" + sState + "]"
+                      " st:" + getMoveIntAsString(sState).substring(0, 2).toUpperCase() + "[" + sState + "]"
                     + " ph:" + sTPhase
                     + (sEscapeFromHazard ? " GETOUTHAZD" : "")
                     + (mHazardPresent ? " goHazd? " + sEnterHazardZone : "")
@@ -1450,10 +1450,10 @@ public class Session {
 
         // for all the possible MOVE directions we might have to set our BoardBounds?!
 
-        boolean canGoUp     = lowestRiskMoves.contains(Snake.U);
-        boolean canGoRight  = lowestRiskMoves.contains(Snake.R);
-        boolean canGoDown   = lowestRiskMoves.contains(Snake.D);
-        boolean canGoLeft   = lowestRiskMoves.contains(Snake.L);
+        boolean canGoUp     = lowestRiskMoves.contains(UP);
+        boolean canGoRight  = lowestRiskMoves.contains(RIGHT);
+        boolean canGoDown   = lowestRiskMoves.contains(DOWN);
+        boolean canGoLeft   = lowestRiskMoves.contains(LEFT);
 
         switch (state){
             case UP:
