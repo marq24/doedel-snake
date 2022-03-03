@@ -114,8 +114,12 @@ public class SnakeTest {
         // skip if they will be fatal]
         // ebc6ac78-21fa-4955-8b95-60b4ad3d684a
 
-        String gameId = "23061a1d-8c79-4417-9c72-c4db6724ccfd";
-        int turn = 121; // ??
+        // one other snake - decide to move UP and not LEFT (because we will move to danger)
+        // "23061a1d-8c79-4417-9c72-c4db6724ccfd";
+        // turn 121 / 11x11
+
+        String gameId = "fc74ede6-20f7-4c0f-88ac-22b7316b6634";
+        int turn = 171; // ??
 
         String yourNameIdentifier = "lender";
         String gameMode = null;

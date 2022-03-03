@@ -31,12 +31,12 @@ public class Session {
         }
     }
 
-    private static final HashMap<Integer, MoveWithState> moveKeyMap = new HashMap<>();
+    private static final HashMap<Integer, MoveWithState> intMovesToMoveKeysMap = new HashMap<>();
     static{
-        moveKeyMap.put(UP, new MoveWithState(UP));
-        moveKeyMap.put(RIGHT, new MoveWithState(RIGHT));
-        moveKeyMap.put(DOWN, new MoveWithState(DOWN));
-        moveKeyMap.put(LEFT, new MoveWithState(LEFT));
+        intMovesToMoveKeysMap.put(UP, new MoveWithState(UP));
+        intMovesToMoveKeysMap.put(RIGHT, new MoveWithState(RIGHT));
+        intMovesToMoveKeysMap.put(DOWN, new MoveWithState(DOWN));
+        intMovesToMoveKeysMap.put(LEFT, new MoveWithState(LEFT));
     }
 
     private static final Logger LOG = LoggerFactory.getLogger(Session.class);
@@ -594,7 +594,8 @@ public class Session {
                 // 3) when our length is smaller than 15
                 // 4) when we are one smaller than the largest other
                 // 5) when the food we want to fetch is at BORDER
-                if(goFullBorder || turn < 30 || myLen < 15 || myLen - 1 < maxOtherSnakeLen || isLocatedAtBorder(closestFood)){
+                //if(goFullBorder || turn < 30 || myLen < 15 || myLen - 1 < maxOtherSnakeLen || isLocatedAtBorder(closestFood)){
+                if(goFullBorder || turn < 30 || isLocatedAtBorder(closestFood)){
                     foodFetchConditionGoBorder = true;
                 }
             }
@@ -1307,10 +1308,6 @@ public class Session {
         // ok we have plenty of alternative moves...
         // we should check, WHICH of them is the most promising...
 
-        // TODO - order moves by RISK-LEVEL!
-        // sEnterNoGoZone or sEnterDangerZone should avoided if possible... if we have
-        // other alternatives...
-
         //1) only keep the moves with the highest DEEP...
         int maxDept = 0;
         HashSet<MoveWithState> movesToRemove = new HashSet<>();
@@ -1327,13 +1324,17 @@ public class Session {
 
         if(movesToRemove.size() >0) {
             possibleMoves.removeAll(movesToRemove);
-        }
-        if(possibleMoves.size() == 1){
-            // ok only one option left - so let's use this...
-            return possibleMoves.get(0).move;
+            movesToRemove.clear();
+
+            if(possibleMoves.size() == 1){
+                // ok only one option left - so let's use this...
+                return possibleMoves.get(0).move;
+            }
         }
 
         //2) remove all "toDangerous" moves (when we have better alternatives)
+        boolean hasEscapeFromHazard = false;
+        boolean hasEscapeFromBorder = false;
         boolean keepGoDanger = true;
         boolean keepGoNoGo = true;
         for (MoveWithState aMove : possibleMoves) {
@@ -1342,6 +1343,12 @@ public class Session {
             }
             if (keepGoDanger && !aMove.state.sEnterDangerZone) {
                 keepGoDanger = false;
+            }
+            if(!hasEscapeFromHazard){
+                hasEscapeFromHazard = aMove.state.sEscapeFromHazard;
+            }
+            if(!hasEscapeFromBorder){
+                hasEscapeFromBorder = aMove.state.sEscapeFromBorder;
             }
         }
         for (MoveWithState aMove : possibleMoves) {
@@ -1352,19 +1359,14 @@ public class Session {
                 movesToRemove.add(aMove);
             }
         }
+
         if(movesToRemove.size() >0) {
             possibleMoves.removeAll(movesToRemove);
-        }
-
-        if(possibleMoves.size() == 1){
+            movesToRemove.clear();
             // ok only one option left - so let's use this...
-            return possibleMoves.get(0).move;
-        }
-
-
-        // checking the possible killMoves...
-        if(killMoves != null && killMoves.size() > 0){
-            // ok checking possible kills
+            if(possibleMoves.size() == 1){
+                return possibleMoves.get(0).move;
+            }
         }
 
         if(mFoodPrimaryDirection != -1 && mFoodSecondaryDirection != -1){
@@ -1372,16 +1374,39 @@ public class Session {
             // checking if primary or secondary FOOD direction is possible
             // selecting the MOVE with less RISK (if there is one with)
             // avoid from border we can do so...
-            MoveWithState pMove = moveKeyMap.get(mFoodPrimaryDirection);
-            if (possibleMoves.contains(pMove)) {
-                return pMove.move;
+            MoveWithState priMove = intMovesToMoveKeysMap.get(mFoodPrimaryDirection);
+            int priIdx = possibleMoves.indexOf(priMove);
+            if(priIdx > -1){
+                priMove = possibleMoves.get(priIdx);
+            }else{
+                priMove = null;
             }
-            MoveWithState sMove = moveKeyMap.get(mFoodSecondaryDirection);
-            if (possibleMoves.contains(sMove)) {
-                return sMove.move;
+            MoveWithState secMove = intMovesToMoveKeysMap.get(mFoodSecondaryDirection);
+            int secIdx = possibleMoves.indexOf(secMove);
+            if(secIdx > -1){
+                secMove = possibleMoves.get(secIdx);
+            }else{
+                secMove = null;
+            }
+
+            if(secMove != null && priMove != null){
+                // Compare possible distance to other's (to compare which is less risky)
+
+                if( (secMove.state.sEscapeFromHazard && !priMove.state.sEscapeFromHazard)
+                ||  (secMove.state.sEscapeFromBorder && !priMove.state.sEscapeFromBorder)
+                ){
+                    // prefer secondary!
+                    return secMove.move;
+                }else{
+                    return priMove.move;
+                }
+            } else if(priMove != null){
+                return priMove.move;
+            } else if(secMove != null){
+                return secMove.move;
             }
         } else if(mFoodPrimaryDirection != -1) {
-            MoveWithState pMove = moveKeyMap.get(mFoodPrimaryDirection);
+            MoveWithState pMove = intMovesToMoveKeysMap.get(mFoodPrimaryDirection);
             if (possibleMoves.contains(pMove)) {
                 return pMove.move;
             }
@@ -1390,9 +1415,6 @@ public class Session {
         // 3) Manual additional risk calculation...
         // comparing RISK of "move" with alternative moves
 
-        // we want our "first" (the preferred) item to be evaluated last...
-        //Collections.reverse(possibleMoves);
-
         // 1'st filtering for least dangerous locations...
         TreeMap<Integer, ArrayList<MoveWithState>> finalMovesStep01 = new TreeMap<>();
         for (MoveWithState aMove : possibleMoves) {
@@ -1400,6 +1422,9 @@ public class Session {
             if (resultingPos != null) {
                 // checking if we are under direct threat
                 int aMoveRisk = snakeNextMovePossibleLocations[resultingPos.y][resultingPos.x];
+                if(aMoveRisk > 0 && aMoveRisk < myLen){
+                    aMoveRisk = 0;
+                }
                 ArrayList<MoveWithState> moves = finalMovesStep01.get(aMoveRisk);
                 if(moves == null) {
                     moves = new ArrayList<>();
@@ -1409,41 +1434,59 @@ public class Session {
             }
         }
 
-        // 2'nd checking the remaining moves which brings us loser to another snake's head...
-        TreeMap<Integer, ArrayList<Integer>> finalMovesStep02 = new TreeMap<>();
+        // 2'nd checking the remaining moves which brings us closer to another snake's head...
+        ArrayList<Point> dangerousNextMovePositions = new ArrayList<>();
         for (Point otherSnakeResultingPos: snakeNextMovePossibleLocationList) {
             boolean canPickUpFood = foodPlaces.contains(otherSnakeResultingPos);
             int otherLen = snakeNextMovePossibleLocations[otherSnakeResultingPos.y][otherSnakeResultingPos.x];
-            if(otherLen >= myLen || (canPickUpFood && otherLen + 1 >= myLen)){
-                for (MoveWithState aMove : finalMovesStep01.firstEntry().getValue()) {
-
-                    // we should reuse already calculated "target" positions!
-                    Point resultingPos = getNewPointForDirection(myHead, aMove.move);
-                    if(resultingPos != null) {
-                        // ok this guy can hurt...
-                        int faceToFaceDist = getPointDistance(otherSnakeResultingPos, resultingPos);
-                        if (faceToFaceDist < 15) {
-
-                        }
-                    }
-                }
+            if (otherLen >= myLen || (canPickUpFood && otherLen + 1 >= myLen)) {
+                // ok here we have another snake location, that cen be dangerous for us
+                dangerousNextMovePositions.add(otherSnakeResultingPos);
             }
         }
 
+        TreeMap<Integer, ArrayList<MoveWithState>> finalMovesStep02 = new TreeMap<>();
+        for (MoveWithState aMove : finalMovesStep01.firstEntry().getValue()) {
+            // we should reuse already calculated "target" positions!
+            Point resultingPos = getNewPointForDirection(myHead, aMove.move);
+            if(resultingPos != null) {
+                int sumDistance = 0;
+                for (Point otherSnakeResultingPos: dangerousNextMovePositions) {
+                    // ok this guy can hurt...
+                    int faceToFaceDist = getPointDistance(otherSnakeResultingPos, resultingPos);
+                    if (faceToFaceDist < 5) {
+                        sumDistance += faceToFaceDist;
+                    }else{
+                        sumDistance += 5;
+                    }
+                }
+
+                ArrayList<MoveWithState> moves = finalMovesStep02.get(sumDistance);
+                if(moves == null) {
+                    moves = new ArrayList<>();
+                    finalMovesStep02.put(sumDistance, moves);
+                }
+                moves.add(aMove);
+            }
+        }
+
+        // ok here we need the LAST VALUE!
         // JUST TO KEEP the code working...
-        ArrayList<Integer> tempMoves = new ArrayList<>();
+        /*ArrayList<Integer> tempMoves = new ArrayList<>();
         finalMovesStep02.put(0, tempMoves);
         for (MoveWithState aMove : finalMovesStep01.firstEntry().getValue()) {
             tempMoves.add(aMove.move);
-        }
+        }*/
 
-        ArrayList<Integer> lowestRiskMoves = null;
+        ArrayList<MoveWithState> lowestRiskMoves = null;
         if(!mWrappedMode){
-            TreeMap<Integer, ArrayList<Integer>> finalMovesStep03 = new TreeMap<>();
-            for (Integer aMoveInt : finalMovesStep02.firstEntry().getValue()) {
+            TreeMap<Integer, ArrayList<MoveWithState>> finalMovesStep03 = new TreeMap<>();
+
+            // finalMovesStep02 is sorted by distance to thread - so LARGER is BETTER!!!
+            for (MoveWithState aMove : finalMovesStep02.lastEntry().getValue()) {
 
                 // we should reuse already calculated "target" positions!
-                Point resultingPos = getNewPointForDirection(myHead, aMoveInt);
+                Point resultingPos = getNewPointForDirection(myHead, aMove.move);
                 if (resultingPos != null) {
                     int aMoveRisk = 0;
                     // TODO: not only the BORDER - also the MIN/MAX can be not so smart...
@@ -1456,29 +1499,111 @@ public class Session {
                         aMoveRisk++;
                     }
 
-                    ArrayList<Integer> moves = finalMovesStep03.get(aMoveRisk);
+                    ArrayList<MoveWithState> moves = finalMovesStep03.get(aMoveRisk);
                     if(moves == null) {
                         moves = new ArrayList<>();
                         finalMovesStep03.put(aMoveRisk, moves);
                     }
-                    moves.add(aMoveInt);
+                    moves.add(aMove);
                 }
             }
             lowestRiskMoves = finalMovesStep03.firstEntry().getValue();
         }else{
-            // simply use the 02 map as our input 03...
-            lowestRiskMoves = finalMovesStep02.firstEntry().getValue();
+            // finalMovesStep02 is sorted by distance to thread - so LARGER is BETTER!!!
+            lowestRiskMoves = finalMovesStep02.lastEntry().getValue();
         }
 
+        if(lowestRiskMoves.size() == 1){
+            // ok - only one option left... let's return that!
+            return lowestRiskMoves.get(0).move;
+        }
+
+        // check if some moves have the "go border" active (and others not)
+        boolean goToBorder = true;
+        for(MoveWithState aMove: lowestRiskMoves){
+            if(goToBorder) {
+                goToBorder = aMove.state.sEnterBorderZone;
+            }else{
+                break;
+            }
+        }
+
+        if(!goToBorder){
+            movesToRemove.clear();
+            for(MoveWithState aMove: lowestRiskMoves){
+                if(aMove.state.sEnterBorderZone){
+
+                    // keeping the kill moves!!! [even if they are goToBorder=true]
+                    if(killMoves == null || !killMoves.contains(aMove.move)){
+                        movesToRemove.add(aMove);
+                    }
+                }
+            }
+            if(movesToRemove.size() > 0) {
+                lowestRiskMoves.removeAll(movesToRemove);
+                movesToRemove.clear();
+            }
+        }
+
+        if(lowestRiskMoves.size() == 1){
+            // ok - only one option left... let's return that!
+            return lowestRiskMoves.get(0).move;
+        }
+
+        // ok if al the remaining moves have the same (low) "risk", we can check,
+        // if there are possible "killMoves"...
+        if(killMoves != null){
+            for(Integer aKillMove: killMoves){
+                if(lowestRiskMoves.contains(intMovesToMoveKeysMap.get(aKillMove))){
+                    LOG.info("Go for a possible kill -> " +getMoveIntAsString(aKillMove));
+                    return aKillMove;
+                }
+            }
+        }
+
+        // checking if there is a GETAWAY from HAZARD or BORDER
+        if(hasEscapeFromHazard) {
+            for (MoveWithState aMove : lowestRiskMoves) {
+                if (aMove.state.sEscapeFromHazard) {
+                    return aMove.move;
+                }
+            }
+        }
+        if(hasEscapeFromBorder) {
+            for (MoveWithState aMove : lowestRiskMoves) {
+                if (aMove.state.sEscapeFromBorder) {
+                    return aMove.move;
+                }
+            }
+        }
+
+        // ok get rid of the STATEs... and getting out final LIST of possible MOVE Options...
+        ArrayList<Integer> finalMoveOptions = new ArrayList<>();
+        for(MoveWithState aMove : lowestRiskMoves){
+            finalMoveOptions.add(aMove.move);
+        }
+
+
+        // as fallback take the first entry from our list...
+        int finalMove = lowestRiskMoves.get(0).move;
+
+        // checking the default movment options from our initial implemented movement plan...
+        int moveFromPlan = tryFollowMovePlan(finalMoveOptions);
+        if(moveFromPlan != UNKNOWN){
+            return moveFromPlan;
+        }else {
+            return finalMove;
+        }
+    }
+
+    private int tryFollowMovePlan(ArrayList<Integer> finalMoveOptions) {
+        LOG.info("follow our path... (cause no other priority could be found)");
         // now we can check, if we can follow the default movement plan...
-        int finalMove = lowestRiskMoves.get(0);
-
         // for all the possible MOVE directions we might have to set our BoardBounds?!
-
-        boolean canGoUp     = lowestRiskMoves.contains(UP);
-        boolean canGoRight  = lowestRiskMoves.contains(RIGHT);
-        boolean canGoDown   = lowestRiskMoves.contains(DOWN);
-        boolean canGoLeft   = lowestRiskMoves.contains(LEFT);
+        boolean canGoUp     = finalMoveOptions.contains(UP);
+        boolean canGoRight  = finalMoveOptions.contains(RIGHT);
+        boolean canGoDown   = finalMoveOptions.contains(DOWN);
+        boolean canGoLeft   = finalMoveOptions.contains(LEFT);
 
         switch (state){
             case UP:
@@ -1664,8 +1789,7 @@ public class Session {
                 }
                 break;
         }
-
-        return finalMove;
+        return UNKNOWN;
     }
 
     private int decideForUpOrDownUsedFromMoveLeftOrRight(boolean canGoUp, boolean canGoDown) {
