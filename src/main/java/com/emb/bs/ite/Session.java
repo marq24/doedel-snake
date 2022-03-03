@@ -1454,10 +1454,10 @@ public class Session {
                 for (Point otherSnakeResultingPos: dangerousNextMovePositions) {
                     // ok this guy can hurt...
                     int faceToFaceDist = getPointDistance(otherSnakeResultingPos, resultingPos);
-                    if (faceToFaceDist < 5) {
+                    if (faceToFaceDist < 4) {
                         sumDistance += faceToFaceDist;
                     }else{
-                        sumDistance += 5;
+                        sumDistance += 4;
                     }
                 }
 
