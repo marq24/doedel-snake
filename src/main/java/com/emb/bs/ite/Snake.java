@@ -198,6 +198,11 @@ public class Snake {
                     s.LASTMOVE = move;
                 }
 
+                Point resultPos = s.getNewPointForDirection(s.myHead, s.getMoveStringAsInt(move));
+                if(!s.foodPlaces.contains(resultPos)){
+                    s.lastTurnTail = s.myTail;
+                }
+
                 s.logState("=> RESULTING MOVE: "+move, LOG);
                 Map<String, String> response = new HashMap<>();
                 response.put("move", move);

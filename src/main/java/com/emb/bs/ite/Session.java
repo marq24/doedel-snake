@@ -27,6 +27,7 @@ public class Session {
     private int state = Snake.UP;
     private int mFoodPrimaryDirection = -1;
     private int mFoodSecondaryDirection = -1;
+    Point lastTurnTail = null;
 
     // Food direction stuff
     private Point foodActive = null;
@@ -713,7 +714,7 @@ public class Session {
             count++;
             if(count <= MAXDEEP) {
                 Point newPos = getNewPointForDirection(aPos, move);
-                if(newPos.equals(myTail)){
+                if(lastTurnTail != null && newPos.equals(lastTurnTail)){
                     return false;
                 }
                     // simple check, if we can move from the new position to any other location
@@ -724,7 +725,7 @@ public class Session {
                     finalMap[myHead.y][myHead.x] = 1;
                     for (int y = 0; y < X; y++) {
                         for (int x = 0; x < X; x++) {
-                            if (myTail.y == y && myTail.x == x) {
+                            if(lastTurnTail != null && lastTurnTail.y == y && lastTurnTail.x == x) {
                                 finalMap[y][x] = 2; // the GOLDEN ASS
                             }else if (myBody[y][x] > 0) {
                                 finalMap[y][x] = 1;
@@ -926,6 +927,21 @@ public class Session {
         }
     }
 
+    int getMoveStringAsInt(String move) {
+        switch (move) {
+            case Snake.U:
+                return Snake.UP;
+            case Snake.R:
+                return Snake.RIGHT;
+            case Snake.D:
+                return Snake.DOWN;
+            case Snake.L:
+                return Snake.LEFT;
+            default:
+                return -1;
+        }
+    }
+
     void logBoard(Logger LOG) {
 
         StringBuffer z = new StringBuffer();
@@ -941,6 +957,8 @@ public class Session {
             for (int x = 0; x < X; x++) {
                 if (myHead.x == x && myHead.y == y) {
                     b.append("X");
+                } else if(lastTurnTail !=null && lastTurnTail.x == x && lastTurnTail.y == y){
+                    b.append('y');
                 } else if (myBody[y][x] == 1) {
                     b.append('c');
                 } else if (snakeBodies[y][x] > 0) {
