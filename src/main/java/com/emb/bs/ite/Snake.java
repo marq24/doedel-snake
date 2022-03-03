@@ -106,7 +106,10 @@ public class Snake {
             Map<String, String> response = new HashMap<>();
             response.put("apiversion", "1");
             response.put("author", "marq24");
-            response.put("color", "#33cc33");
+            // release
+            //response.put("color", "#33cc33");
+            // beta
+            response.put("color", "#3333cc");
             //response.put("color", "#FF1111");
             // https://play.battlesnake.com/references/customizations/
             response.put("head", "sand-worm"); // TODO: Personalize
