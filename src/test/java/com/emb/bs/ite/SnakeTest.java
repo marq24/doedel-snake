@@ -100,7 +100,7 @@ public class SnakeTest {
 
     @Test
     void replayGameWithId() throws Exception{
-
+        Snake.logBoard = true;
         // THIS is a GAME where @ move 81 I should try to get away from other snake heads
         // https://play.battlesnake.com/g/8d9706c0-71cd-49a2-a823-d1a81bd2be67/
         //String gameId= "8d9706c0-71cd-49a2-a823-d1a81bd2be67";
@@ -118,8 +118,8 @@ public class SnakeTest {
         // "23061a1d-8c79-4417-9c72-c4db6724ccfd";
         // turn 121 / 11x11
 
-        String gameId = "fc74ede6-20f7-4c0f-88ac-22b7316b6634";
-        int turn = 171; // ??
+        String gameId = "83d30e1b-31ad-43d4-9dc3-72cfc474e154";
+        int turn = 113; // ??
 
         String yourNameIdentifier = "lender";
         String gameMode = null;

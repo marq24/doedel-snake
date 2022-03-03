@@ -31,6 +31,7 @@ public class Snake {
     static final String L = "left";
     static final String R = "right";
 
+    static boolean logBoard = false;
     /**
      * Main entry point.
      *
@@ -41,6 +42,7 @@ public class Snake {
         if (port == null) {
             LOG.info("Using default port: {}", port);
             port = "9191";
+            logBoard = true;
         } else {
             LOG.info("Found system provided port: {}", port);
         }
@@ -347,7 +349,9 @@ public class Snake {
             // session status...
             s.initSessionAfterFullBoardRead(haz != null);
             s.logState("MOVE CALLED", LOG);
-            s.logBoard(LOG);
+            if(logBoard) {
+                s.logBoard(LOG);
+            }
         }
 
         /**
