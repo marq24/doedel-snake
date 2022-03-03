@@ -23,11 +23,12 @@ public class Session {
     int turn;
 
     // stateful stuff
-    int tPhase = 0;
-    int state = 0;
+    private int tPhase = 0;
+    private int state = 0;
     private int mFoodPrimaryDirection = -1;
     private int mFoodSecondaryDirection = -1;
 
+    // Food direction stuff
     private Point foodActive = null;
     private boolean foodGoForIt = false;
     private boolean foodFetchConditionGoHazard = false;
@@ -62,11 +63,11 @@ public class Session {
     private boolean escapeFromHazard = false;
 
 
-    boolean hungerMode = true;
+    private boolean mHungerMode = true;
 
     boolean mWrappedMode = false;
-    boolean mRoyaleMode = false;
-    boolean mHazardPresent = false;
+    private boolean mRoyaleMode = false;
+    private boolean mHazardPresent = false;
 
     class SavedState {
         int sState = state;
@@ -111,19 +112,14 @@ public class Session {
         enterNoGoZone = savedState.sEnterNoGoZone;
     }
 
-    void restoreSimpleState(SavedState savedState) {
-        state = savedState.sState;
-        tPhase = savedState.sTPhase;
-    }
-
-    public void setFullBoardBounds() {
+    private void setFullBoardBounds() {
         yMin = 0;
         xMin = 0;
         yMax = Y - 1;
         xMax = X - 1;
     }
 
-    public void restoreBoardBounds(int[] prevBounds) {
+    private void restoreBoardBounds(int[] prevBounds) {
         yMin = prevBounds[0];
         xMin = prevBounds[1];
         yMax = prevBounds[2];
@@ -141,7 +137,7 @@ public class Session {
         enterHazardZone = false;
     }
 
-    public void initSessionForTurn(String gameType, int height, int width) {
+    void initSessionForTurn(String gameType, int height, int width) {
         Y = height;
         X = width;
         initSaveBoardBounds();
@@ -183,7 +179,7 @@ public class Session {
 
                 case "royale":
                     mRoyaleMode = true;
-                    hungerMode = false;
+                    mHungerMode = false;
                     break;
 
                 case "wrapped":
@@ -196,7 +192,7 @@ public class Session {
                     // NOT sure yet, if moving totally
                     // to the border is smart...
                     enterBorderZone = true;
-                    hungerMode = false;
+                    mHungerMode = false;
                     setFullBoardBounds();
                     break;
             }
@@ -205,7 +201,7 @@ public class Session {
         }
     }
 
-    public void initSessionAfterFullBoardRead(boolean hazardDataIsPresent) {
+    void initSessionAfterFullBoardRead(boolean hazardDataIsPresent) {
         // before we check any special moves, we check, if we are already on the borderline, and if this is the
         // case we can/will disable 'avoid borders' flag...
 
@@ -314,7 +310,7 @@ public class Session {
         }
     }
 
-    public String moveDirection(int move, RiskState risk) {
+    private String moveDirection(int move, RiskState risk) {
 
         String moveAsString = getMoveIntAsString(move);
         if(risk == null){
@@ -354,7 +350,7 @@ public class Session {
     }
 
     private int getAdvantage(){
-        if( hungerMode ){
+        if(mHungerMode){
             return 8;
         } else {
             // how many foods-ahead we want to be...
@@ -376,7 +372,7 @@ public class Session {
         }
     }
 
-    public List<Integer> checkSpecialMoves() {
+    private List<Integer> checkSpecialMoves() {
         List<Integer> killMoves = checkKillMoves();
         if(killMoves != null && killMoves.size() >0){
             LOG.info("FOUND possible KILLs :" +killMoves);
