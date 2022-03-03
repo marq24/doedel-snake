@@ -1418,22 +1418,34 @@ public class Session {
         // 1'st filtering for least dangerous locations...
         TreeMap<Integer, ArrayList<MoveWithState>> finalMovesStep01 = new TreeMap<>();
         for (MoveWithState aMove : possibleMoves) {
-            Point resultingPos = getNewPointForDirection(myHead, aMove.move);
-            if (resultingPos != null) {
-                // checking if we are under direct threat
-                int aMoveRisk = snakeNextMovePossibleLocations[resultingPos.y][resultingPos.x];
-                if(aMoveRisk > 0 && aMoveRisk < myLen){
-                    aMoveRisk = 0;
+            Point resultingPos = aMove.getResPosForMyHead(this);
+            // checking if we are under direct threat
+            int aMoveRisk = snakeNextMovePossibleLocations[resultingPos.y][resultingPos.x];
+            if(aMoveRisk > 0 && aMoveRisk < myLen){
+                aMoveRisk = 0;
+            }
+            ArrayList<MoveWithState> moves = finalMovesStep01.get(aMoveRisk);
+            if(moves == null) {
+                moves = new ArrayList<>();
+                finalMovesStep01.put(aMoveRisk, moves);
+            }
+            moves.add(aMove);
+        }
+
+        // 2a - checking if we can catch our own tail?!
+        // in this case we can ignore the approach of other snake heads
+        if(lastTurnTail != null){
+            for (MoveWithState aMove : finalMovesStep01.firstEntry().getValue()) {
+                // we should reuse already calculated "target" positions!
+                Point resultingPos = aMove.getResPosForMyHead(this);
+                if(resultingPos.equals(lastTurnTail)){
+                    // cool - just lat pick that one!
+                    return aMove.move;
                 }
-                ArrayList<MoveWithState> moves = finalMovesStep01.get(aMoveRisk);
-                if(moves == null) {
-                    moves = new ArrayList<>();
-                    finalMovesStep01.put(aMoveRisk, moves);
-                }
-                moves.add(aMove);
             }
         }
 
+        // TODO: in ConstrictorMode we should not avoid other's heads!
         // 2'nd checking the remaining moves which brings us closer to another snake's head...
         ArrayList<Point> dangerousNextMovePositions = new ArrayList<>();
         for (Point otherSnakeResultingPos: snakeNextMovePossibleLocationList) {
@@ -1448,26 +1460,24 @@ public class Session {
         TreeMap<Integer, ArrayList<MoveWithState>> finalMovesStep02 = new TreeMap<>();
         for (MoveWithState aMove : finalMovesStep01.firstEntry().getValue()) {
             // we should reuse already calculated "target" positions!
-            Point resultingPos = getNewPointForDirection(myHead, aMove.move);
-            if(resultingPos != null) {
-                int sumDistance = 0;
-                for (Point otherSnakeResultingPos: dangerousNextMovePositions) {
-                    // ok this guy can hurt...
-                    int faceToFaceDist = getPointDistance(otherSnakeResultingPos, resultingPos);
-                    if (faceToFaceDist < 4) {
-                        sumDistance += faceToFaceDist;
-                    }else{
-                        sumDistance += 4;
-                    }
+            Point resultingPos = aMove.getResPosForMyHead(this);
+            int sumDistance = 0;
+            for (Point otherSnakeResultingPos: dangerousNextMovePositions) {
+                // ok this guy can hurt...
+                int faceToFaceDist = getPointDistance(otherSnakeResultingPos, resultingPos);
+                if (faceToFaceDist < 4) {
+                    sumDistance += faceToFaceDist;
+                }else{
+                    sumDistance += 4;
                 }
-
-                ArrayList<MoveWithState> moves = finalMovesStep02.get(sumDistance);
-                if(moves == null) {
-                    moves = new ArrayList<>();
-                    finalMovesStep02.put(sumDistance, moves);
-                }
-                moves.add(aMove);
             }
+
+            ArrayList<MoveWithState> moves = finalMovesStep02.get(sumDistance);
+            if(moves == null) {
+                moves = new ArrayList<>();
+                finalMovesStep02.put(sumDistance, moves);
+            }
+            moves.add(aMove);
         }
 
         // ok here we need the LAST VALUE!
@@ -1484,28 +1494,24 @@ public class Session {
 
             // finalMovesStep02 is sorted by distance to thread - so LARGER is BETTER!!!
             for (MoveWithState aMove : finalMovesStep02.lastEntry().getValue()) {
-
-                // we should reuse already calculated "target" positions!
-                Point resultingPos = getNewPointForDirection(myHead, aMove.move);
-                if (resultingPos != null) {
-                    int aMoveRisk = 0;
-                    // TODO: not only the BORDER - also the MIN/MAX can be not so smart...
-                    // ok no other snake is here in the area - but if we are a move to the BORDER
-                    // then consider this move as a more risk move...
-                    if (resultingPos.y == 0 || resultingPos.y == Y - 1) {
-                        aMoveRisk++;
-                    }
-                    if (resultingPos.x == 0 || resultingPos.x == X - 1) {
-                        aMoveRisk++;
-                    }
-
-                    ArrayList<MoveWithState> moves = finalMovesStep03.get(aMoveRisk);
-                    if(moves == null) {
-                        moves = new ArrayList<>();
-                        finalMovesStep03.put(aMoveRisk, moves);
-                    }
-                    moves.add(aMove);
+                Point resultingPos = aMove.getResPosForMyHead(this);
+                int aMoveRisk = 0;
+                // TODO: not only the BORDER - also the MIN/MAX can be not so smart...
+                // ok no other snake is here in the area - but if we are a move to the BORDER
+                // then consider this move as a more risk move...
+                if (resultingPos.y == 0 || resultingPos.y == Y - 1) {
+                    aMoveRisk++;
                 }
+                if (resultingPos.x == 0 || resultingPos.x == X - 1) {
+                    aMoveRisk++;
+                }
+
+                ArrayList<MoveWithState> moves = finalMovesStep03.get(aMoveRisk);
+                if(moves == null) {
+                    moves = new ArrayList<>();
+                    finalMovesStep03.put(aMoveRisk, moves);
+                }
+                moves.add(aMove);
             }
             lowestRiskMoves = finalMovesStep03.firstEntry().getValue();
         }else{
