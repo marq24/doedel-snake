@@ -74,6 +74,7 @@ public class Session {
     ArrayList<Point> snakeHeads = null;
     int[][] snakeBodies = null;
     int[][] snakeNextMovePossibleLocations = null;
+    ArrayList<Point> snakeNextMovePossibleLocationList = null;
     int maxOtherSnakeLen = 0;
     int[][] myBody = null;
     int[][] hazardZone = null;
@@ -176,6 +177,7 @@ public class Session {
         snakeHeads = new ArrayList<>();
         snakeBodies = new int[Y][X];
         snakeNextMovePossibleLocations = new int[Y][X];
+        snakeNextMovePossibleLocationList = new ArrayList<>();
         maxOtherSnakeLen = 0;
 
         myBody = new int[Y][X];
@@ -484,11 +486,11 @@ public class Session {
 
         TreeMap<Integer, ArrayList<Point>> foodTargetsByDistance = new TreeMap<>();
         for (Point f : availableFoods) {
-            int dist = getFoodDistance(f, myHead);
+            int dist = getPointDistance(f, myHead);
             if(!isLocatedAtBorder(f) || dist < 3 || (dist < 4 && myHealth < 65) || myHealth < 16) {
                 boolean addFoodAsTarget = true;
                 for (Point h : snakeHeads) {
-                    int otherSnakesDist = getFoodDistance(f, h);
+                    int otherSnakesDist = getPointDistance(f, h);
                     boolean otherIsStronger = snakeBodies[h.y][h.x] >= myLen;
                     if(dist > otherSnakesDist || (dist == otherSnakesDist && otherIsStronger)) {
                         addFoodAsTarget = false;
@@ -616,12 +618,12 @@ public class Session {
         mFoodSecondaryDirection = -1;
     }
 
-    private int getFoodDistance(Point food, Point other){
+    private int getPointDistance(Point p1, Point p2){
         if(!mWrappedMode){
-            return Math.abs(food.x - other.x) + Math.abs(food.y - other.y);
+            return Math.abs(p1.x - p2.x) + Math.abs(p1.y - p2.y);
         }else{
-            // in wrappedMode: if food.x = 0 & other.x = 11, then distance is 1
-            return Math.min(Math.abs(food.x + X - other.x), Math.abs(food.x - other.x)) + Math.min(Math.abs(food.y + Y - other.y), Math.abs(food.y - other.y));
+            // in wrappedMode: if p1.x = 0 & p2.x = 11, then distance is 1
+            return Math.min(Math.abs(p1.x + X - p2.x), Math.abs(p1.x - p2.x)) + Math.min(Math.abs(p1.y + Y - p2.y), Math.abs(p1.y - p2.y));
         }
     }
 
@@ -933,21 +935,6 @@ public class Session {
                 + " "+gameId;
         LOG.info(msg);
     }
-
-    /*static int getMoveStringAsInt(String move) {
-        switch (move) {
-            case Snake.U:
-                return UP;
-            case Snake.R:
-                return RIGHT;
-            case Snake.D:
-                return DOWN;
-            case Snake.L:
-                return LEFT;
-            default:
-                return -1;
-        }
-    }*/
 
     void logBoard(Logger LOG) {
 
@@ -1406,17 +1393,60 @@ public class Session {
         // we want our "first" (the preferred) item to be evaluated last...
         //Collections.reverse(possibleMoves);
 
-        TreeMap<Integer, ArrayList<Integer>> finalMoves = new TreeMap<>();
+        // 1'st filtering for least dangerous locations...
+        TreeMap<Integer, ArrayList<MoveWithState>> finalMovesStep01 = new TreeMap<>();
         for (MoveWithState aMove : possibleMoves) {
             Point resultingPos = getNewPointForDirection(myHead, aMove.move);
-
             if (resultingPos != null) {
                 // checking if we are under direct threat
                 int aMoveRisk = snakeNextMovePossibleLocations[resultingPos.y][resultingPos.x];
-                if (aMoveRisk == 0 && !mWrappedMode) {
+                ArrayList<MoveWithState> moves = finalMovesStep01.get(aMoveRisk);
+                if(moves == null) {
+                    moves = new ArrayList<>();
+                    finalMovesStep01.put(aMoveRisk, moves);
+                }
+                moves.add(aMove);
+            }
+        }
 
+        // 2'nd checking the remaining moves which brings us loser to another snake's head...
+        TreeMap<Integer, ArrayList<Integer>> finalMovesStep02 = new TreeMap<>();
+        for (Point otherSnakeResultingPos: snakeNextMovePossibleLocationList) {
+            boolean canPickUpFood = foodPlaces.contains(otherSnakeResultingPos);
+            int otherLen = snakeNextMovePossibleLocations[otherSnakeResultingPos.y][otherSnakeResultingPos.x];
+            if(otherLen >= myLen || (canPickUpFood && otherLen + 1 >= myLen)){
+                for (MoveWithState aMove : finalMovesStep01.firstEntry().getValue()) {
+
+                    // we should reuse already calculated "target" positions!
+                    Point resultingPos = getNewPointForDirection(myHead, aMove.move);
+                    if(resultingPos != null) {
+                        // ok this guy can hurt...
+                        int faceToFaceDist = getPointDistance(otherSnakeResultingPos, resultingPos);
+                        if (faceToFaceDist < 15) {
+
+                        }
+                    }
+                }
+            }
+        }
+
+        // JUST TO KEEP the code working...
+        ArrayList<Integer> tempMoves = new ArrayList<>();
+        finalMovesStep02.put(0, tempMoves);
+        for (MoveWithState aMove : finalMovesStep01.firstEntry().getValue()) {
+            tempMoves.add(aMove.move);
+        }
+
+        ArrayList<Integer> lowestRiskMoves = null;
+        if(!mWrappedMode){
+            TreeMap<Integer, ArrayList<Integer>> finalMovesStep03 = new TreeMap<>();
+            for (Integer aMoveInt : finalMovesStep02.firstEntry().getValue()) {
+
+                // we should reuse already calculated "target" positions!
+                Point resultingPos = getNewPointForDirection(myHead, aMoveInt);
+                if (resultingPos != null) {
+                    int aMoveRisk = 0;
                     // TODO: not only the BORDER - also the MIN/MAX can be not so smart...
-
                     // ok no other snake is here in the area - but if we are a move to the BORDER
                     // then consider this move as a more risk move...
                     if (resultingPos.y == 0 || resultingPos.y == Y - 1) {
@@ -1426,24 +1456,19 @@ public class Session {
                         aMoveRisk++;
                     }
 
-                    // if this is not a move into a corner, we should check the distance from other snakes
-                    // head's that are LONGER (or have the same length but can catch FOOD with the next move...
-
-                    // calculating the distance to all s.snakeNextMovePossibleLocations... (good to have an
-                    // array of all of them) - special handing, if 'snakeNextMovePossibleLocations' is also
-                    // a foodPosition! (then a snake tha is currently 1 times shorter becomes equal)
+                    ArrayList<Integer> moves = finalMovesStep03.get(aMoveRisk);
+                    if(moves == null) {
+                        moves = new ArrayList<>();
+                        finalMovesStep03.put(aMoveRisk, moves);
+                    }
+                    moves.add(aMoveInt);
                 }
-                ArrayList<Integer> moves = finalMoves.get(aMoveRisk);
-                if(moves == null) {
-                    moves = new ArrayList<>();
-                    finalMoves.put(aMoveRisk, moves);
-                }
-                moves.add(aMove.move);
             }
+            lowestRiskMoves = finalMovesStep03.firstEntry().getValue();
+        }else{
+            // simply use the 02 map as our input 03...
+            lowestRiskMoves = finalMovesStep02.firstEntry().getValue();
         }
-
-        // lowest Risk move options...
-        ArrayList<Integer> lowestRiskMoves = finalMoves.firstEntry().getValue();
 
         // now we can check, if we can follow the default movement plan...
         int finalMove = lowestRiskMoves.get(0);
@@ -1502,7 +1527,10 @@ public class Session {
                             state = LEFT;
                             return LEFT;
                         }else {
-                            return decideForUpOrDownUsedFromMoveLeftOrRight(canGoUp, canGoDown);
+                            int upOrDown = decideForUpOrDownUsedFromMoveLeftOrRight(canGoUp, canGoDown);
+                            if(upOrDown > UNKNOWN) {
+                                return upOrDown;
+                            }
                         }
                     }
                 }
@@ -1627,7 +1655,10 @@ public class Session {
                         } else {
                             // return Snake.L;
                             // if we are in the pending mode, we prefer to go ALWAYS UP
-                            return decideForUpOrDownUsedFromMoveLeftOrRight(canGoUp, canGoDown);
+                            int upOrDown = decideForUpOrDownUsedFromMoveLeftOrRight(canGoUp, canGoDown);
+                            if(upOrDown > UNKNOWN) {
+                                return upOrDown;
+                            }
                         }
                     }
                 }
@@ -1646,10 +1677,11 @@ public class Session {
             if (canGoUp && (myHead.y < yMax / 2 || !canGoDown)) {
                 state = UP;
                 return UP;
-            } else {
+            } else if (canGoDown){
                 state = DOWN;
                 return DOWN;
             }
         }
+        return UNKNOWN;
     }
 }

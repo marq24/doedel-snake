@@ -114,8 +114,8 @@ public class SnakeTest {
         // skip if they will be fatal]
         // ebc6ac78-21fa-4955-8b95-60b4ad3d684a
 
-        String gameId = "75c21b03-d00c-454e-ac74-abe4437853ef";
-        int turn = 518; // ?? [check GETAWAY FROM BORDER and the UP / DOWN / LEFT status]
+        String gameId = "23061a1d-8c79-4417-9c72-c4db6724ccfd";
+        int turn = 121; // ??
 
         String yourNameIdentifier = "lender";
         String gameMode = null;
