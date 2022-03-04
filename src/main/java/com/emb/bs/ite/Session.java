@@ -1401,13 +1401,25 @@ if(Snake.debugTurn == turn){
                 ||  (secMove.state.sEscapeFromBorder && !priMove.state.sEscapeFromBorder)
                 ){
                     // prefer secondary!
+                    if(mWrappedMode){
+                        state = secMove.move;
+                    }
                     return secMove.move;
                 }else{
+                    if(mWrappedMode){
+                        state = priMove.move;
+                    }
                     return priMove.move;
                 }
             } else if(priMove != null){
+                if(mWrappedMode){
+                    state = priMove.move;
+                }
                 return priMove.move;
             } else if(secMove != null){
+                if(mWrappedMode){
+                    state = secMove.move;
+                }
                 return secMove.move;
             }
         } else if(mFoodPrimaryDirection != -1) {
@@ -1504,10 +1516,6 @@ if(Snake.debugTurn == turn){
                         }
                     }
                 }
-
-if(Snake.debugTurn == turn){
-    LOG.debug("HALT" + bestList);
-}
             }
         }else{
            // DO NOTHING concerning DANGER-SNEAK Heads in mConstrictorMode
@@ -1535,6 +1543,10 @@ if(Snake.debugTurn == turn){
             }
             bestList = finalMovesStep03.firstEntry().getValue();
         }
+
+if(Snake.debugTurn == turn){
+    LOG.debug("HALT" + bestList);
+}
 
         if(bestList.size() == 1){
             // ok - only one option left... let's return that!
