@@ -99,30 +99,30 @@ public class Session {
     private boolean mHazardPresent = false;
 
     class SavedState {
-        int savedState = state;
-        int savedTPhase = tPhase;
-        boolean savedEscapeFromBorder = escapeFromBorder;
-        boolean savedEscapeFromHazard = escapeFromHazard;
-        boolean savedIgnoreOtherTargets = ignoreOtherTargets;
-        boolean savedEnterHazardZone = enterHazardZone;
-        boolean savedEnterBorderZone = enterBorderZone;
-        boolean savedEnterDangerZone = enterDangerZone;
-        boolean savedEnterNoGoZone = enterNoGoZone;
-        int savedMAXDEEP = MAXDEEP;
+        int sdState = state;
+        int sTPhase = tPhase;
+        boolean sEscapeFromBorder = escapeFromBorder;
+        boolean sEscapeFromHazard = escapeFromHazard;
+        boolean sIgnoreOtherTargets = ignoreOtherTargets;
+        boolean sEnterHazardZone = enterHazardZone;
+        boolean sEnterBorderZone = enterBorderZone;
+        boolean sEnterDangerZone = enterDangerZone;
+        boolean sEnterNoGoZone = enterNoGoZone;
+        int sMAXDEEP = MAXDEEP;
 
         @Override
         public String toString() {
                 return
-                      " st:" + getMoveIntAsString(savedState).substring(0, 2).toUpperCase() + "[" + savedState + "]"
-                    + " ph:" + savedTPhase
-                    + (savedEscapeFromHazard ? " GETOUTHAZD" : "")
-                    + (mHazardPresent ? " goHazd? " + savedEnterHazardZone : "")
-                    + " goBorder? " + savedEnterBorderZone
-                    + (savedEscapeFromBorder ? " GAWYBRD" : "")
-                    + (savedIgnoreOtherTargets ? " IGNOREOTHERS" : "")
-                    + " maxDeep? " + savedMAXDEEP
-                    + " goDanger? " + savedEnterDangerZone
-                    + " goNoGo? " + savedEnterNoGoZone;
+                      " st:" + getMoveIntAsString(sdState).substring(0, 2).toUpperCase() + "[" + sdState + "]"
+                    + " ph:" + sTPhase
+                    + (sEscapeFromHazard ? " GETOUTHAZD" : "")
+                    + (mHazardPresent ? " goHazd? " + sEnterHazardZone : "")
+                    + " goBorder? " + sEnterBorderZone
+                    + (sEscapeFromBorder ? " GAWYBRD" : "")
+                    + (sIgnoreOtherTargets ? " IGNOREOTHERS" : "")
+                    + " maxDeep? " + sMAXDEEP
+                    + " goDanger? " + sEnterDangerZone
+                    + " goNoGo? " + sEnterNoGoZone;
         }
     }
 
@@ -131,17 +131,17 @@ public class Session {
     }
 
     void restoreState(SavedState savedState) {
-        state = savedState.savedState;
-        tPhase = savedState.savedTPhase;
+        state = savedState.sdState;
+        tPhase = savedState.sTPhase;
 
-        escapeFromBorder = savedState.savedEscapeFromBorder;
-        escapeFromHazard = savedState.savedEscapeFromHazard;
-        ignoreOtherTargets = savedState.savedIgnoreOtherTargets;
-        enterHazardZone = savedState.savedEnterHazardZone;
-        enterBorderZone = savedState.savedEnterBorderZone;
-        MAXDEEP = savedState.savedMAXDEEP;
-        enterDangerZone = savedState.savedEnterDangerZone;
-        enterNoGoZone = savedState.savedEnterNoGoZone;
+        escapeFromBorder = savedState.sEscapeFromBorder;
+        escapeFromHazard = savedState.sEscapeFromHazard;
+        ignoreOtherTargets = savedState.sIgnoreOtherTargets;
+        enterHazardZone = savedState.sEnterHazardZone;
+        enterBorderZone = savedState.sEnterBorderZone;
+        MAXDEEP = savedState.sMAXDEEP;
+        enterDangerZone = savedState.sEnterDangerZone;
+        enterNoGoZone = savedState.sEnterNoGoZone;
     }
 
     private void setFullBoardBounds() {
@@ -1341,11 +1341,11 @@ if(Snake.debugTurn == turn){
         int maxDept = 0;
         HashSet<MoveWithState> movesToRemove = new HashSet<>();
         for (MoveWithState aMove : possibleMoves) {
-            int dept = aMove.state.savedMAXDEEP;
+            int dept = aMove.state.sMAXDEEP;
             maxDept = Math.max(maxDept, dept);
         }
         for (MoveWithState aMove : possibleMoves) {
-            int dept = aMove.state.savedMAXDEEP;
+            int dept = aMove.state.sMAXDEEP;
             if (dept < maxDept) {
                 movesToRemove.add(aMove);
             }
@@ -1367,24 +1367,24 @@ if(Snake.debugTurn == turn){
         boolean keepGoDanger = true;
         boolean keepGoNoGo = true;
         for (MoveWithState aMove : possibleMoves) {
-            if (keepGoNoGo && !aMove.state.savedEnterNoGoZone) {
+            if (keepGoNoGo && !aMove.state.sEnterNoGoZone) {
                 keepGoNoGo = false;
             }
-            if (keepGoDanger && !aMove.state.savedEnterDangerZone) {
+            if (keepGoDanger && !aMove.state.sEnterDangerZone) {
                 keepGoDanger = false;
             }
             if(!hasEscapeFromHazard){
-                hasEscapeFromHazard = aMove.state.savedEscapeFromHazard;
+                hasEscapeFromHazard = aMove.state.sEscapeFromHazard;
             }
             if(!hasEscapeFromBorder){
-                hasEscapeFromBorder = aMove.state.savedEscapeFromBorder;
+                hasEscapeFromBorder = aMove.state.sEscapeFromBorder;
             }
         }
         for (MoveWithState aMove : possibleMoves) {
-            if (!keepGoNoGo && aMove.state.savedEnterNoGoZone){
+            if (!keepGoNoGo && aMove.state.sEnterNoGoZone){
                 movesToRemove.add(aMove);
             }
-            if (!keepGoDanger && aMove.state.savedEnterDangerZone){
+            if (!keepGoDanger && aMove.state.sEnterDangerZone){
                 movesToRemove.add(aMove);
             }
         }
@@ -1421,8 +1421,8 @@ if(Snake.debugTurn == turn){
             if(secMove != null && priMove != null){
                 // Compare possible distance to other's (to compare which is less risky)
 
-                if( (secMove.state.savedEscapeFromHazard && !priMove.state.savedEscapeFromHazard)
-                ||  (secMove.state.savedEscapeFromBorder && !priMove.state.savedEscapeFromBorder)
+                if( (secMove.state.sEscapeFromHazard && !priMove.state.sEscapeFromHazard)
+                ||  (secMove.state.sEscapeFromBorder && !priMove.state.sEscapeFromBorder)
                 ){
                     // prefer secondary!
                     if(mWrappedMode){
@@ -1475,19 +1475,20 @@ if(Snake.debugTurn == turn){
 
         // 2a - checking if we can catch our own tail?!
         // in this case we can ignore the approach of other snake heads
+        // but only if this will not move into hazard
         if(lastTurnTail != null){
             for (MoveWithState aMove : finalMovesStep01.firstEntry().getValue()) {
-                // we should reuse already calculated "target" positions!
-                Point resultingPos = aMove.getResPosForMyHead(this);
-                if(resultingPos.equals(lastTurnTail)){
+                if(!mHazardPresent || !aMove.state.sEnterHazardZone){
+                    Point resultingPos = aMove.getResPosForMyHead(this);
                     // cool - just lat pick that one!
-                    return aMove.move;
+                    if (resultingPos.equals(lastTurnTail)) {
+                        return aMove.move;
+                    }
                 }
             }
         }
 
         ArrayList<MoveWithState> bestList = finalMovesStep01.firstEntry().getValue();
-
         ArrayList<MoveWithState> bestListNoHzd = null;
         // we should check the result list's (at least the first two ones), if there
         // will be a MOVE to Border or Move to Hazard implied (when trying to get away
@@ -1495,7 +1496,7 @@ if(Snake.debugTurn == turn){
         if(mHazardPresent){
             bestListNoHzd = new ArrayList<>(bestList);
             for(MoveWithState aBestMove: bestList){
-                if(aBestMove.state.savedEnterHazardZone){
+                if(aBestMove.state.sEnterHazardZone){
                     bestListNoHzd.remove(aBestMove);
                 }
             }
@@ -1582,7 +1583,7 @@ if(Snake.debugTurn == turn){
         boolean goToBorder = true;
         for(MoveWithState aMove: bestList){
             if(goToBorder) {
-                goToBorder = aMove.state.savedEnterBorderZone;
+                goToBorder = aMove.state.sEnterBorderZone;
             }else{
                 break;
             }
@@ -1591,7 +1592,7 @@ if(Snake.debugTurn == turn){
         if(!goToBorder){
             movesToRemove.clear();
             for(MoveWithState aMove: bestList){
-                if(aMove.state.savedEnterBorderZone){
+                if(aMove.state.sEnterBorderZone){
 
                     // keeping the kill moves!!! [even if they are goToBorder=true]
                     if(killMoves == null || !killMoves.contains(aMove.move)){
@@ -1623,14 +1624,14 @@ if(Snake.debugTurn == turn){
         // checking if there is a GETAWAY from HAZARD or BORDER
         if(hasEscapeFromHazard) {
             for (MoveWithState aMove : bestList) {
-                if (aMove.state.savedEscapeFromHazard) {
+                if (aMove.state.sEscapeFromHazard) {
                     return aMove.move;
                 }
             }
         }
         if(hasEscapeFromBorder) {
             for (MoveWithState aMove : bestList) {
-                if (aMove.state.savedEscapeFromBorder) {
+                if (aMove.state.sEscapeFromBorder) {
                     return aMove.move;
                 }
             }
