@@ -1011,13 +1011,14 @@ public class Session {
     private void logMap(int[][] aMap, int c) {
         LOG.info("XXL TurnNo:"+turn+" MAXDEEP:"+MAXDEEP+" len:"+ myLen +" loopCount:"+c);
         StringBuffer z = new StringBuffer();
-        z.append('┌');
+        z.append(" ┌");
         for(int i=0; i< X; i++){z.append('─');}
         z.append('┐');
         LOG.info(z.toString());
 
         for (int y = Y - 1; y >= 0; y--) {
             StringBuffer b = new StringBuffer();
+            b.append(y % 10);
             b.append('│');
             for (int x = 0; x < X; x++) {
                 if(aMap[y][x]>0){
@@ -1030,10 +1031,16 @@ public class Session {
             LOG.info(b.toString());
         }
         StringBuffer y = new StringBuffer();
-        y.append('└');
+        y.append(" └");
         for(int i=0; i< X; i++){y.append('─');}
         y.append('┘');
         LOG.info(y.toString());
+        StringBuffer b = new StringBuffer();
+        b.append("  ");
+        for (int i = 0; i < X; i++) {
+            b.append(i % 10);
+        }
+        LOG.info(b.toString());
     }
 
     /*ArrayList<Integer> cmdChain = null;
@@ -1623,6 +1630,42 @@ if(Snake.debugTurn == turn){
             finalSimpleMoveOptions.add(aMove.move);
         }
 
+        // cool to 'still' have so many options...
+        if (finalSimpleMoveOptions.size() == 2) {
+            int move1 = finalSimpleMoveOptions.get(0);
+            int move2 = finalSimpleMoveOptions.get(1);
+            if(isOpposite(move1, move2)) {
+                // OK - UP/DOWN or LEFT/RIGHT
+                int[][] finalMap = new int[Y][X];
+                finalMap[myHead.y][myHead.x] = 1;
+                for (int y = 0; y < X; y++) {
+                    for (int x = 0; x < X; x++) {
+                        if (myBody[y][x] > 0) {
+                            finalMap[y][x] = 1;
+                        } else if (snakeBodies[y][x] > 0) {
+                            finalMap[y][x] = 1;
+                        } else if (snakeNextMovePossibleLocations[y][x] > 0) {
+                            finalMap[y][x] = 1;
+                        }
+                    }
+                }
+
+                //logMap(finalMap, 0);
+
+                boolean toRestore = enterNoGoZone;
+                enterNoGoZone = true;
+                int op1 = countMoves(finalMap, myHead, move1, 0) - 1;
+                int op2 = countMoves(finalMap, myHead, move2, 0) - 1;
+                enterNoGoZone = toRestore;
+
+                if(op1>op2){
+                    return move1;
+                }else if(op2>op1){
+                    return move2;
+                }
+            }
+        }
+
         // as fallback take the first entry from our list...
         int finalPossibleFallbackMove = bestList.get(0).move;
 
@@ -1633,6 +1676,61 @@ if(Snake.debugTurn == turn){
         }else {
             return finalPossibleFallbackMove;
         }
+    }
+
+    private int countMoves(int[][] map, Point aPos, int move, int count) {
+        Point nextPoint = getNewPointForDirection(aPos, move);
+        // to skip loop check!
+        switch (move){
+            case UP:
+                if(count>Y){
+                    return count;
+                }else {
+                    if (canMoveUp(aPos, map, 0)) {
+                        count = countMoves(map, nextPoint, move, count);
+                    }
+                }
+                break;
+
+            case DOWN:
+                if(count>Y){
+                    return count;
+                }else {
+                    if (canMoveDown(aPos, map, 0)) {
+                        count = countMoves(map, nextPoint, move, count);
+                    }
+                }
+                break;
+
+            case LEFT:
+                if(count>X){
+                    return count;
+                }else {
+                    if (canMoveLeft(aPos, map, 0)) {
+                        count = countMoves(map, nextPoint, move, count);
+                    }
+                }
+                break;
+
+            case RIGHT:
+                if(count>X){
+                    return count;
+                }else {
+                    if (canMoveRight(aPos, map, 0)) {
+                        count = countMoves(map, nextPoint, move, count);
+                    }
+                }
+                break;
+        }
+        return ++count;
+    }
+
+    private boolean isOpposite(int i, int j) {
+        return  (i==UP && j==DOWN) ||
+                (j==UP && i==DOWN) ||
+                (i==LEFT && j==RIGHT) ||
+                (j==LEFT && i==RIGHT)
+                ;
     }
 
     private TreeMap<Integer, ArrayList<MoveWithState>> groupByOtherHeadDistance(ArrayList<MoveWithState> bestList, ArrayList<Point> dangerousNextMovePositions) {
