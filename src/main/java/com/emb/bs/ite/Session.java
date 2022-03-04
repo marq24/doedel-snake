@@ -81,6 +81,7 @@ public class Session {
     ArrayList<Point> foodPlaces = null;
 
     private int MAXDEEP = 0;
+    private boolean ignoreOtherTargets = false;
     private boolean enterHazardZone = false;
     private boolean enterBorderZone = false;
     private boolean enterDangerZone = false;
@@ -102,6 +103,7 @@ public class Session {
         int sTPhase = tPhase;
         boolean sEscapeFromBorder = escapeFromBorder;
         boolean sEscapeFromHazard = escapeFromHazard;
+        boolean sIgnoreOtherTargets = ignoreOtherTargets;
         boolean sEnterHazardZone = enterHazardZone;
         boolean sEnterBorderZone = enterBorderZone;
         boolean sEnterDangerZone = enterDangerZone;
@@ -115,9 +117,10 @@ public class Session {
                     + " ph:" + sTPhase
                     + (sEscapeFromHazard ? " GETOUTHAZD" : "")
                     + (mHazardPresent ? " goHazd? " + sEnterHazardZone : "")
-                    + (sEscapeFromBorder ? " GAWYBRD" : "")
-                    + " maxDeep? " + sMAXDEEP
                     + " goBorder? " + sEnterBorderZone
+                    + (sEscapeFromBorder ? " GAWYBRD" : "")
+                    + (ignoreOtherTargets ? " IGNORE" : "")
+                    + " maxDeep? " + sMAXDEEP
                     + " goDanger? " + sEnterDangerZone
                     + " goNoGo? " + sEnterNoGoZone;
         }
@@ -133,6 +136,7 @@ public class Session {
 
         escapeFromBorder = savedState.sEscapeFromBorder;
         escapeFromHazard = savedState.sEscapeFromHazard;
+        ignoreOtherTargets = savedState.sIgnoreOtherTargets;
         enterHazardZone = savedState.sEnterHazardZone;
         enterBorderZone = savedState.sEnterBorderZone;
         MAXDEEP = savedState.sMAXDEEP;
@@ -163,6 +167,7 @@ public class Session {
         enterNoGoZone = false;
         enterBorderZone = false;
         enterHazardZone = false;
+        ignoreOtherTargets = false;
     }
 
     void initSessionForTurn(String gameType, int height, int width) {
@@ -328,9 +333,13 @@ public class Session {
             } else if (mHazardPresent && !enterHazardZone) {
                 LOG.debug("activate now GO-TO-HAZARD");
                 enterHazardZone = true;
-            } else if(MAXDEEP > 1){
-                LOG.debug("activate MAXDEEP TO: "+MAXDEEP);
+            } else if(MAXDEEP > 1) {
+                LOG.debug("activate MAXDEEP TO: " + MAXDEEP);
                 MAXDEEP--;
+            } else if(!ignoreOtherTargets){
+                LOG.debug("activate IGNORE OTHER TARGETS and reset MAXDEEP" + MAXDEEP);
+                ignoreOtherTargets = true;
+                MAXDEEP = myLen;
             } else if (!enterDangerZone) {
                 LOG.debug("activate now GO-TO-DANGER-ZONE");
                 enterDangerZone = true;
@@ -762,7 +771,7 @@ public class Session {
                                 finalMap[y][x] = 1;
                             } else if (snakeBodies[y][x] > 0) {
                                 finalMap[y][x] = 1;
-                            } else if (snakeNextMovePossibleLocations[y][x] > 0) {
+                            } else if (!ignoreOtherTargets && snakeNextMovePossibleLocations[y][x] > 0) {
                                 finalMap[y][x] = 1;
                             }
                         }
@@ -936,6 +945,7 @@ public class Session {
                 + (mHazardPresent ? " goHazd? " + enterHazardZone : "")
                 + (escapeFromBorder ? " GAWYBRD" : "")
                 + " goBorder? " + enterBorderZone
+                + (ignoreOtherTargets ? " IGNORE" : "")
                 + " maxDeep? " + MAXDEEP
                 + " goDanger? " + enterDangerZone
                 + " goNoGo? " + enterNoGoZone
