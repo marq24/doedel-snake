@@ -122,10 +122,14 @@ public class SnakeTest {
         Snake.debugTurn = 98;
         // DECIDE, IF it's smart ot move away from Pink SneakHead INTO the Hazard?!
 
+        gameId = "30662871-f531-43b6-a2d5-6d4d22ddfeca";
+        Snake.debugTurn = 129;
+
         String yourNameIdentifier = "lender";
         String gameMode = null;
-        //String gameMode = "wrapped";
-        //String gameMode = "royale";
+        gameMode = "wrapped";
+        //gameMode = "royale";
+        //gameMode = "solo";
         int Y = 11;
         int X = 11;
 
@@ -135,7 +139,7 @@ public class SnakeTest {
         container.connectToServer(collector, uri);
 
         // wait 5 seconds for messages from websocket
-        Thread.sleep(5000);
+        Thread.sleep(2500);
 
         handler.start(convertToReq(collector.list.get(0), gameId, gameMode, Y, X, yourNameIdentifier));
         for(int i=0; i < collector.list.size()-1 ; i++){
