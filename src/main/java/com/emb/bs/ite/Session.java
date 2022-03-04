@@ -745,7 +745,7 @@ public class Session {
             count++;
             if(count <= MAXDEEP) {
                 Point newPos = getNewPointForDirection(aPos, move);
-                if(lastTurnTail != null && newPos.equals(lastTurnTail)){
+                if(lastTurnTail != null && newPos.equals(lastTurnTail) && !foodPlaces.contains(newPos)){
                     return false;
                 }
                     // simple check, if we can move from the new position to any other location
