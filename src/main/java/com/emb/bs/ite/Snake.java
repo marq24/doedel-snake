@@ -370,7 +370,8 @@ public class Snake {
             JsonNode game = endRequest.get("game");
             String gameId = game.get("id").asText();
             Session s = sessions.remove(gameId);
-            if(s.players==null){
+            if(s == null){
+                s = new Session();
                 s.players = new ArrayList<>();
             }
 
