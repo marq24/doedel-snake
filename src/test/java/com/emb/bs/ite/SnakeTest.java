@@ -100,7 +100,6 @@ public class SnakeTest {
 
     @Test
     void replayGameWithId() throws Exception{
-        Snake.logBoard = true;
         // THIS is a GAME where @ move 81 I should try to get away from other snake heads
         // https://play.battlesnake.com/g/8d9706c0-71cd-49a2-a823-d1a81bd2be67/
         //String gameId= "8d9706c0-71cd-49a2-a823-d1a81bd2be67";
@@ -118,8 +117,10 @@ public class SnakeTest {
         // "23061a1d-8c79-4417-9c72-c4db6724ccfd";
         // turn 121 / 11x11
 
-        String gameId = "83d30e1b-31ad-43d4-9dc3-72cfc474e154";
-        int turn = 113; // ??
+        Snake.logBoard = true;
+        String gameId = "c8222b2c-9e76-4c9e-a1fc-8b8931f5c035";
+        Snake.debugTurn = 98;
+        // DECIDE, IF it's smart ot move away from Pink SneakHead INTO the Hazard?!
 
         String yourNameIdentifier = "lender";
         String gameMode = null;
@@ -139,9 +140,6 @@ public class SnakeTest {
         handler.start(convertToReq(collector.list.get(0), gameId, gameMode, Y, X, yourNameIdentifier));
         for(int i=0; i < collector.list.size()-1 ; i++){
             JsonNode req = convertToReq(collector.list.get(i), gameId, gameMode, Y, X, yourNameIdentifier);
-            if(i == turn){
-                LOG.info("DEBUG NOW");
-            }
             handler.move(req);
         }
         handler.end(convertToReq(collector.list.get(collector.list.size()-1), gameId, gameMode, Y, X, yourNameIdentifier));

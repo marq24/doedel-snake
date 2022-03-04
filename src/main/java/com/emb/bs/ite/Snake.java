@@ -32,6 +32,7 @@ public class Snake {
     static final String R = "right";
 
     static boolean logBoard = false;
+    static int debugTurn = -1;
     /**
      * Main entry point.
      *
