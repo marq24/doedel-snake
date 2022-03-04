@@ -201,9 +201,14 @@ public class Session {
 
         if(gameType != null) {
             switch (gameType) {
-                case "solo":
                 case "standard":
                 case "squad":
+                    break;
+
+                case "solo":
+                    enterBorderZone = true;
+                    mHungerMode = false;
+                    setFullBoardBounds();
                     break;
 
                 case "royale":
