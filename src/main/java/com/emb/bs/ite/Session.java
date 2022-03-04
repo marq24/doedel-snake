@@ -94,6 +94,7 @@ public class Session {
 
     boolean mWrappedMode = false;
     private boolean mRoyaleMode = false;
+    private boolean mConstrictorMode = false;
     private boolean mHazardPresent = false;
 
     class SavedState {
@@ -219,6 +220,7 @@ public class Session {
                 case "constrictor":
                     // NOT sure yet, if moving totally
                     // to the border is smart...
+                    mConstrictorMode = true;
                     enterBorderZone = true;
                     mHungerMode = false;
                     setFullBoardBounds();
@@ -1448,64 +1450,69 @@ if(Snake.debugTurn == turn){
             }
         }
 
-        // TODO: in ConstrictorMode we should not avoid other's heads!
-        // 2'nd checking the remaining moves which brings us closer to another snake's head...
-        ArrayList<Point> dangerousNextMovePositions = new ArrayList<>();
-        for (Point otherSnakeResultingPos: snakeNextMovePossibleLocationList) {
-            boolean canPickUpFood = foodPlaces.contains(otherSnakeResultingPos);
-            int otherLen = snakeNextMovePossibleLocations[otherSnakeResultingPos.y][otherSnakeResultingPos.x];
-            if (otherLen >= myLen || (canPickUpFood && otherLen + 1 >= myLen)) {
-                // ok here we have another snake location, that cen be dangerous for us
-                dangerousNextMovePositions.add(otherSnakeResultingPos);
-            }
-        }
-
         ArrayList<MoveWithState> bestList = finalMovesStep01.firstEntry().getValue();
+
+        ArrayList<MoveWithState> bestListNoHzd = null;
         // we should check the result list's (at least the first two ones), if there
         // will be a MOVE to Border or Move to Hazard implied (when trying to get away
         // from other sneak heads - and DECIDE for an alternative?!)
         if(mHazardPresent){
-            ArrayList<MoveWithState> copy = new ArrayList<>(bestList);
+            bestListNoHzd = new ArrayList<>(bestList);
             for(MoveWithState aBestMove: bestList){
                 if(aBestMove.state.sEnterHazardZone){
-                    copy.remove(aBestMove);
+                    bestListNoHzd.remove(aBestMove);
                 }
-            }
-            if(copy.size() > 0){
-                bestList = copy;
             }
         }
 
-        TreeMap<Integer, ArrayList<MoveWithState>> finalMovesStep02 = new TreeMap<>();
-        for (MoveWithState aMove : bestList) {
-            // we should reuse already calculated "target" positions!
-            Point resultingPos = aMove.getResPosForMyHead(this);
-            int sumDistance = 0;
-            for (Point otherSnakeResultingPos: dangerousNextMovePositions) {
-                // ok this guy can hurt...
-                int faceToFaceDist = getPointDistance(otherSnakeResultingPos, resultingPos);
-                if (faceToFaceDist < 3) {
-                    sumDistance += faceToFaceDist;
-                }else{
-                    sumDistance += 3;
+        if(!mConstrictorMode){
+            // 2'nd checking the remaining moves which brings us closer to another snake's head...
+            ArrayList<Point> dangerousNextMovePositions = new ArrayList<>();
+            for (Point otherSnakeResultingPos: snakeNextMovePossibleLocationList) {
+                boolean canPickUpFood = foodPlaces.contains(otherSnakeResultingPos);
+                int otherLen = snakeNextMovePossibleLocations[otherSnakeResultingPos.y][otherSnakeResultingPos.x];
+                if (otherLen >= myLen || (canPickUpFood && otherLen + 1 >= myLen)) {
+                    // ok here we have another snake location, that cen be dangerous for us
+                    dangerousNextMovePositions.add(otherSnakeResultingPos);
                 }
             }
 
-            ArrayList<MoveWithState> moves = finalMovesStep02.get(sumDistance);
-            if(moves == null) {
-                moves = new ArrayList<>();
-                finalMovesStep02.put(sumDistance, moves);
-            }
-            moves.add(aMove);
-        }
+            TreeMap<Integer, ArrayList<MoveWithState>> finalMovesStep02 = groupByOtherHeadDistance(bestList, dangerousNextMovePositions);
+            // finalMovesStep02 is sorted by distance to thread - so LARGER is BETTER!!!
+            Map.Entry<Integer, ArrayList<MoveWithState>> bestEntry = finalMovesStep02.lastEntry();
+            bestList = bestEntry.getValue();
 
-        // finalMovesStep02 is sorted by distance to thread - so LARGER is BETTER!!!
-        bestList = finalMovesStep02.lastEntry().getValue();
 if(Snake.debugTurn == turn){
     LOG.debug("HALT" + bestList);
 }
+            TreeMap<Integer, ArrayList<MoveWithState>> finalMovesStep02NoHzd = null;
+            if(bestListNoHzd != null && bestListNoHzd.size() > 0) {
+                finalMovesStep02NoHzd = groupByOtherHeadDistance(bestListNoHzd, dangerousNextMovePositions);
+                Map.Entry<Integer, ArrayList<MoveWithState>> bestEntryNoHzd = finalMovesStep02NoHzd.lastEntry();
+                bestListNoHzd = bestEntryNoHzd.getValue();
 
-        ArrayList<MoveWithState> lowestRiskMoves = null;
+                // ok checking the content of the NO-HAZARD-List with the open list...
+                if (bestList.containsAll(bestListNoHzd)) {
+                    // ok cool - all the possible BEST-Moves also include the NONE-HZRD moves...
+                    // so we reduce the BEST-List to the none-HAZARD moves
+                    bestList = bestListNoHzd;
+                } else {
+                    if(bestEntry.getKey() - bestEntryNoHzd.getKey() == 1){
+                        ArrayList<MoveWithState> secondBestList = finalMovesStep02.get(bestEntryNoHzd.getKey());
+                        if(secondBestList.containsAll(bestListNoHzd)){
+                            bestList = bestListNoHzd;
+                        }
+                    }
+                }
+
+if(Snake.debugTurn == turn){
+    LOG.debug("HALT" + bestList);
+}
+            }
+        }else{
+           // DO NOTHING concerning DANGER-SNEAK Heads in mConstrictorMode
+        }
+
         if(!mWrappedMode){
             TreeMap<Integer, ArrayList<MoveWithState>> finalMovesStep03 = new TreeMap<>();
             for (MoveWithState aMove : bestList) {
@@ -1526,21 +1533,18 @@ if(Snake.debugTurn == turn){
                 }
                 moves.add(aMove);
             }
-            lowestRiskMoves = finalMovesStep03.firstEntry().getValue();
-        }else{
-            // finalMovesStep02 is sorted by distance to thread - so LARGER is BETTER!!!
-            lowestRiskMoves = finalMovesStep02.lastEntry().getValue();
+            bestList = finalMovesStep03.firstEntry().getValue();
         }
 
-        if(lowestRiskMoves.size() == 1){
+        if(bestList.size() == 1){
             // ok - only one option left... let's return that!
-            return lowestRiskMoves.get(0).move;
+            return bestList.get(0).move;
         }
 
 
         // check if some moves have the "go border" active (and others not)
         boolean goToBorder = true;
-        for(MoveWithState aMove: lowestRiskMoves){
+        for(MoveWithState aMove: bestList){
             if(goToBorder) {
                 goToBorder = aMove.state.sEnterBorderZone;
             }else{
@@ -1550,7 +1554,7 @@ if(Snake.debugTurn == turn){
         // not all entries have go-to-border...
         if(!goToBorder){
             movesToRemove.clear();
-            for(MoveWithState aMove: lowestRiskMoves){
+            for(MoveWithState aMove: bestList){
                 if(aMove.state.sEnterBorderZone){
 
                     // keeping the kill moves!!! [even if they are goToBorder=true]
@@ -1560,11 +1564,11 @@ if(Snake.debugTurn == turn){
                 }
             }
             if(movesToRemove.size() > 0) {
-                lowestRiskMoves.removeAll(movesToRemove);
+                bestList.removeAll(movesToRemove);
                 movesToRemove.clear();
-                if(lowestRiskMoves.size() == 1){
+                if(bestList.size() == 1){
                     // ok - only one option left... let's return that!
-                    return lowestRiskMoves.get(0).move;
+                    return bestList.get(0).move;
                 }
             }
         }
@@ -1573,7 +1577,7 @@ if(Snake.debugTurn == turn){
         // if there are possible "killMoves"...
         if(killMoves != null){
             for(Integer aKillMove: killMoves){
-                if(lowestRiskMoves.contains(intMovesToMoveKeysMap.get(aKillMove))){
+                if(bestList.contains(intMovesToMoveKeysMap.get(aKillMove))){
                     LOG.info("GO for a possible KILL -> " +getMoveIntAsString(aKillMove));
                     return aKillMove;
                 }
@@ -1582,14 +1586,14 @@ if(Snake.debugTurn == turn){
 
         // checking if there is a GETAWAY from HAZARD or BORDER
         if(hasEscapeFromHazard) {
-            for (MoveWithState aMove : lowestRiskMoves) {
+            for (MoveWithState aMove : bestList) {
                 if (aMove.state.sEscapeFromHazard) {
                     return aMove.move;
                 }
             }
         }
         if(hasEscapeFromBorder) {
-            for (MoveWithState aMove : lowestRiskMoves) {
+            for (MoveWithState aMove : bestList) {
                 if (aMove.state.sEscapeFromBorder) {
                     return aMove.move;
                 }
@@ -1598,12 +1602,12 @@ if(Snake.debugTurn == turn){
 
         // ok get rid of the STATEs... and getting our final LIST of possible MOVE Options...
         ArrayList<Integer> finalSimpleMoveOptions = new ArrayList<>();
-        for(MoveWithState aMove : lowestRiskMoves){
+        for(MoveWithState aMove : bestList){
             finalSimpleMoveOptions.add(aMove.move);
         }
 
         // as fallback take the first entry from our list...
-        int finalPossibleFallbackMove = lowestRiskMoves.get(0).move;
+        int finalPossibleFallbackMove = bestList.get(0).move;
 
         // checking the default movement options from our initial implemented movement plan...
         int moveFromPlan = tryFollowMovePlan(finalSimpleMoveOptions);
@@ -1612,6 +1616,30 @@ if(Snake.debugTurn == turn){
         }else {
             return finalPossibleFallbackMove;
         }
+    }
+
+    private TreeMap<Integer, ArrayList<MoveWithState>> groupByOtherHeadDistance(ArrayList<MoveWithState> bestList, ArrayList<Point> dangerousNextMovePositions) {
+        TreeMap<Integer, ArrayList<MoveWithState>> returnMap = new TreeMap<>();
+        for (MoveWithState aMove : bestList) {
+            Point resultingPos = aMove.getResPosForMyHead(this);
+            int sumDistance = 0;
+            for (Point otherSnakeResultingPos: dangerousNextMovePositions) {
+                int faceToFaceDist = getPointDistance(otherSnakeResultingPos, resultingPos);
+                if (faceToFaceDist < 3) {
+                    sumDistance += faceToFaceDist;
+                }else{
+                    sumDistance += 3;
+                }
+            }
+
+            ArrayList<MoveWithState> moves = returnMap.get(sumDistance);
+            if(moves == null) {
+                moves = new ArrayList<>();
+                returnMap.put(sumDistance, moves);
+            }
+            moves.add(aMove);
+        }
+        return returnMap;
     }
 
     private int tryFollowMovePlan(ArrayList<Integer> finalMoveOptions) {
