@@ -1490,7 +1490,7 @@ if(Snake.debugTurn == turn){
         // comparing RISK of "move" with alternative moves
 
         // 1'st filtering for least dangerous locations...
-        TreeMap<Integer, ArrayList<MoveWithState>> finalMovesStep01 = new TreeMap<>();
+        TreeMap<Integer, ArrayList<MoveWithState>> groupByDirectThread = new TreeMap<>();
         for (MoveWithState aMove : possibleMoves) {
             Point resultingPos = aMove.getResPosForMyHead(this);
             // checking if we are under direct threat
@@ -1498,14 +1498,14 @@ if(Snake.debugTurn == turn){
             if(aMoveRisk > 0 && aMoveRisk < myLen){
                 aMoveRisk = 0;
             }
-            ArrayList<MoveWithState> moves = finalMovesStep01.get(aMoveRisk);
+            ArrayList<MoveWithState> moves = groupByDirectThread.get(aMoveRisk);
             if(moves == null) {
                 moves = new ArrayList<>();
-                finalMovesStep01.put(aMoveRisk, moves);
+                groupByDirectThread.put(aMoveRisk, moves);
             }
             moves.add(aMove);
         }
-        ArrayList<MoveWithState> bestList = finalMovesStep01.firstEntry().getValue();
+        ArrayList<MoveWithState> bestList = groupByDirectThread.firstEntry().getValue();
         if(bestList.size() == 1){
             return bestList.get(0);
         }
@@ -1551,18 +1551,18 @@ if(Snake.debugTurn == turn){
                 }
             }
 
-            TreeMap<Integer, ArrayList<MoveWithState>> finalMovesStep02 = groupByOtherHeadDistance(bestList, dangerousNextMovePositions);
-            // finalMovesStep02 is sorted by distance to thread - so LARGER is BETTER!!!
-            Map.Entry<Integer, ArrayList<MoveWithState>> bestEntry = finalMovesStep02.lastEntry();
+            TreeMap<Integer, ArrayList<MoveWithState>> groupByOtherHeadDistance = groupByOtherHeadDistance(bestList, dangerousNextMovePositions);
+            // groupByOtherHeadDistance is sorted by distance to thread - so LARGER is BETTER!!!
+            Map.Entry<Integer, ArrayList<MoveWithState>> bestEntry = groupByOtherHeadDistance.lastEntry();
             bestList = bestEntry.getValue();
 
 if(Snake.debugTurn == turn){
     LOG.debug("HALT" + bestList);
 }
-            TreeMap<Integer, ArrayList<MoveWithState>> finalMovesStep02NoHzd = null;
+            TreeMap<Integer, ArrayList<MoveWithState>> groupByOtherHeadsWithoutEnterHzd = null;
             if(bestListNoHzd != null && bestListNoHzd.size() > 0) {
-                finalMovesStep02NoHzd = groupByOtherHeadDistance(bestListNoHzd, dangerousNextMovePositions);
-                Map.Entry<Integer, ArrayList<MoveWithState>> bestEntryNoHzd = finalMovesStep02NoHzd.lastEntry();
+                groupByOtherHeadsWithoutEnterHzd = groupByOtherHeadDistance(bestListNoHzd, dangerousNextMovePositions);
+                Map.Entry<Integer, ArrayList<MoveWithState>> bestEntryNoHzd = groupByOtherHeadsWithoutEnterHzd.lastEntry();
                 bestListNoHzd = bestEntryNoHzd.getValue();
 
                 // ok checking the content of the NO-HAZARD-List with the open list...
@@ -1572,7 +1572,7 @@ if(Snake.debugTurn == turn){
                     bestList = bestListNoHzd;
                 } else {
                     if(bestEntry.getKey() - bestEntryNoHzd.getKey() == 1){
-                        ArrayList<MoveWithState> secondBestList = finalMovesStep02.get(bestEntryNoHzd.getKey());
+                        ArrayList<MoveWithState> secondBestList = groupByOtherHeadDistance.get(bestEntryNoHzd.getKey());
                         if(secondBestList.containsAll(bestListNoHzd)){
                             bestList = bestListNoHzd;
                         }
@@ -1583,8 +1583,48 @@ if(Snake.debugTurn == turn){
            // DO NOTHING concerning DANGER-SNEAK Heads in mConstrictorMode
         }
 
+        if(foodGoForIt && foodActive != null){
+if(Snake.debugTurn == turn){
+    LOG.debug("HALT" + bestList);
+}
+            TreeMap<Integer, ArrayList<MoveWithState>> groupByResultingFoodDistance = new TreeMap<>();
+            for (MoveWithState aMove : bestList) {
+                Point resPos = aMove.getResPosForMyHead(this);
+                int foodDistance = getPointDistance(foodActive, resPos);
+                ArrayList<MoveWithState> list = groupByResultingFoodDistance.get(foodDistance);
+                if(list == null){
+                    list = new ArrayList<>();
+                    groupByResultingFoodDistance.put(foodDistance, list);
+                }
+                list.add(aMove);
+            }
+            bestList = groupByResultingFoodDistance.firstEntry().getValue();
+            if(bestList.size() == 1){
+                return bestList.get(0);
+            }
+
+            // check if on of the moves is the opposite food direction?
+            if(mFoodPrimaryDirection != -1) {
+                ArrayList<MoveWithState> clone = new ArrayList<>(bestList);
+                for (MoveWithState aMove : bestList) {
+                    if(isOpposite(mFoodPrimaryDirection, aMove.move)){
+                        clone.remove(aMove);
+                    }
+                }
+                if(clone.size()>0){
+                    bestList = clone;
+                }
+                if(bestList.size() == 1){
+                    MoveWithState aMove = bestList.get(0);
+                    if(!mHazardPresent || !aMove.state.sEnterHazardZone){
+                        return aMove;
+                    }
+                }
+            }
+        }
+
         if(!mWrappedMode){
-            TreeMap<Integer, ArrayList<MoveWithState>> finalMovesStep03 = new TreeMap<>();
+            TreeMap<Integer, ArrayList<MoveWithState>> groupByEnterBorderZone = new TreeMap<>();
             for (MoveWithState aMove : bestList) {
                 Point resultingPos = aMove.getResPosForMyHead(this);
                 int aMoveRisk = 0;
@@ -1596,14 +1636,14 @@ if(Snake.debugTurn == turn){
                     aMoveRisk++;
                 }
 
-                ArrayList<MoveWithState> moves = finalMovesStep03.get(aMoveRisk);
+                ArrayList<MoveWithState> moves = groupByEnterBorderZone.get(aMoveRisk);
                 if(moves == null) {
                     moves = new ArrayList<>();
-                    finalMovesStep03.put(aMoveRisk, moves);
+                    groupByEnterBorderZone.put(aMoveRisk, moves);
                 }
                 moves.add(aMove);
             }
-            bestList = finalMovesStep03.firstEntry().getValue();
+            bestList = groupByEnterBorderZone.firstEntry().getValue();
             if(bestList.size() == 1){
                 return bestList.get(0);
             }
