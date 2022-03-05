@@ -1423,6 +1423,9 @@ if(Snake.debugTurn == turn){
 
                 if( (secMove.state.sEscapeFromHazard && !priMove.state.sEscapeFromHazard)
                 ||  (secMove.state.sEscapeFromBorder && !priMove.state.sEscapeFromBorder)
+                ||  (!secMove.state.sEnterBorderZone && priMove.state.sEnterBorderZone)
+                ||  (!secMove.state.sEnterHazardZone && priMove.state.sEnterHazardZone)
+                ||  (!secMove.state.sEnterDangerZone && priMove.state.sEnterDangerZone)
                 ){
                     // prefer secondary!
                     if(mWrappedMode){
