@@ -1253,7 +1253,7 @@ public class Session {
         }
     }*/
 
-    int calculateNextMoveOptions() {
+    MoveWithState calculateNextMoveOptions() {
         int[] currentActiveBounds = new int[]{yMin, xMin, yMax, xMax};
         // checkSpecialMoves will also activate the 'goForFood' flag - so if this flag is set
         // we hat a primary and secondary direction in which we should move in order to find/get
@@ -1319,7 +1319,7 @@ public class Session {
             LOG.error("***********************");
             LOG.error("DOOMED!");
             LOG.error("***********************");
-            return DOOMED;
+            return new MoveWithState(DOOMED, this);
         }
 
 if(Snake.debugTurn == turn){
@@ -1327,13 +1327,13 @@ if(Snake.debugTurn == turn){
 }
 
         if(possibleMoves.size() == 1){
-            return possibleMoves.get(0).move;
+            return possibleMoves.get(0);
         }else{
             return getBestMove(possibleMoves, killMoves);
         }
     }
 
-    private int getBestMove(ArrayList<MoveWithState> possibleMoves, List<Integer> killMoves) {
+    private MoveWithState getBestMove(ArrayList<MoveWithState> possibleMoves, List<Integer> killMoves) {
         // ok we have plenty of alternative moves...
         // we should check, WHICH of them is the most promising...
 
@@ -1357,7 +1357,7 @@ if(Snake.debugTurn == turn){
 
             if(possibleMoves.size() == 1){
                 // ok only one option left - so let's use this...
-                return possibleMoves.get(0).move;
+                return possibleMoves.get(0);
             }
         }
 
@@ -1394,7 +1394,7 @@ if(Snake.debugTurn == turn){
             movesToRemove.clear();
             // ok only one option left - so let's use this...
             if(possibleMoves.size() == 1){
-                return possibleMoves.get(0).move;
+                return possibleMoves.get(0);
             }
         }
 
@@ -1428,28 +1428,28 @@ if(Snake.debugTurn == turn){
                     if(mWrappedMode){
                         state = secMove.move;
                     }
-                    return secMove.move;
+                    return secMove;
                 }else{
                     if(mWrappedMode){
                         state = priMove.move;
                     }
-                    return priMove.move;
+                    return priMove;
                 }
             } else if(priMove != null){
                 if(mWrappedMode){
                     state = priMove.move;
                 }
-                return priMove.move;
+                return priMove;
             } else if(secMove != null){
                 if(mWrappedMode){
                     state = secMove.move;
                 }
-                return secMove.move;
+                return secMove;
             }
         } else if(mFoodPrimaryDirection != -1) {
             MoveWithState pMove = intMovesToMoveKeysMap.get(mFoodPrimaryDirection);
             if (possibleMoves.contains(pMove)) {
-                return pMove.move;
+                return possibleMoves.get(possibleMoves.indexOf(pMove));
             }
         }
 
@@ -1482,7 +1482,7 @@ if(Snake.debugTurn == turn){
                     Point resultingPos = aMove.getResPosForMyHead(this);
                     // cool - just lat pick that one!
                     if (resultingPos.equals(lastTurnTail)) {
-                        return aMove.move;
+                        return aMove;
                     }
                 }
             }
@@ -1575,7 +1575,7 @@ if(Snake.debugTurn == turn){
 
         if(bestList.size() == 1){
             // ok - only one option left... let's return that!
-            return bestList.get(0).move;
+            return bestList.get(0);
         }
 
 
@@ -1605,7 +1605,7 @@ if(Snake.debugTurn == turn){
                 movesToRemove.clear();
                 if(bestList.size() == 1){
                     // ok - only one option left... let's return that!
-                    return bestList.get(0).move;
+                    return bestList.get(0);
                 }
             }
         }
@@ -1614,9 +1614,11 @@ if(Snake.debugTurn == turn){
         // if there are possible "killMoves"...
         if(killMoves != null){
             for(Integer aKillMove: killMoves){
-                if(bestList.contains(intMovesToMoveKeysMap.get(aKillMove))){
+                MoveWithState finalKillMove = intMovesToMoveKeysMap.get(aKillMove);
+                if(bestList.contains(finalKillMove)){
+                    int idxOfKillMove = bestList.indexOf(finalKillMove);
                     LOG.info("GO for a possible KILL -> " +getMoveIntAsString(aKillMove));
-                    return aKillMove;
+                    return bestList.get(idxOfKillMove);
                 }
             }
         }
@@ -1625,28 +1627,22 @@ if(Snake.debugTurn == turn){
         if(hasEscapeFromHazard) {
             for (MoveWithState aMove : bestList) {
                 if (aMove.state.sEscapeFromHazard) {
-                    return aMove.move;
+                    return aMove;
                 }
             }
         }
         if(hasEscapeFromBorder) {
             for (MoveWithState aMove : bestList) {
                 if (aMove.state.sEscapeFromBorder) {
-                    return aMove.move;
+                    return aMove;
                 }
             }
         }
 
-        // ok get rid of the STATEs... and getting our final LIST of possible MOVE Options...
-        ArrayList<Integer> finalSimpleMoveOptions = new ArrayList<>();
-        for(MoveWithState aMove : bestList){
-            finalSimpleMoveOptions.add(aMove.move);
-        }
-
         // cool to 'still' have so many options...
-        if (finalSimpleMoveOptions.size() == 2) {
-            int move1 = finalSimpleMoveOptions.get(0);
-            int move2 = finalSimpleMoveOptions.get(1);
+        if (bestList.size() == 2) {
+            int move1 = bestList.get(0).move;
+            int move2 = bestList.get(1).move;
             if(isOpposite(move1, move2)) {
                 // OK - UP/DOWN or LEFT/RIGHT
                 int[][] finalMap = new int[Y][X];
@@ -1672,20 +1668,21 @@ if(Snake.debugTurn == turn){
                 enterNoGoZone = toRestore;
 
                 if(op1>op2){
-                    return move1;
+                    return bestList.get(0);
                 }else if(op2>op1){
-                    return move2;
+                    return bestList.get(1);
                 }
             }
         }
 
         // as fallback take the first entry from our list...
-        int finalPossibleFallbackMove = bestList.get(0).move;
+        MoveWithState finalPossibleFallbackMove = bestList.get(0);
 
         // checking the default movement options from our initial implemented movement plan...
-        int moveFromPlan = tryFollowMovePlan(finalSimpleMoveOptions);
+        int moveFromPlan = tryFollowMovePlan(bestList);
         if(moveFromPlan != UNKNOWN){
-            return moveFromPlan;
+            MoveWithState routeMove = intMovesToMoveKeysMap.get(moveFromPlan);
+            return bestList.get(bestList.indexOf(routeMove));
         }else {
             return finalPossibleFallbackMove;
         }
@@ -1770,14 +1767,14 @@ if(Snake.debugTurn == turn){
         return returnMap;
     }
 
-    private int tryFollowMovePlan(ArrayList<Integer> finalMoveOptions) {
+    private int tryFollowMovePlan(ArrayList<MoveWithState> finalMoveOptions) {
         LOG.info("follow our path... (cause no other priority could be found)");
         // now we can check, if we can follow the default movement plan...
         // for all the possible MOVE directions we might have to set our BoardBounds?!
-        boolean canGoUp     = finalMoveOptions.contains(UP);
-        boolean canGoRight  = finalMoveOptions.contains(RIGHT);
-        boolean canGoDown   = finalMoveOptions.contains(DOWN);
-        boolean canGoLeft   = finalMoveOptions.contains(LEFT);
+        boolean canGoUp     = finalMoveOptions.contains(intMovesToMoveKeysMap.get(UP));
+        boolean canGoRight  = finalMoveOptions.contains(intMovesToMoveKeysMap.get(RIGHT));
+        boolean canGoDown   = finalMoveOptions.contains(intMovesToMoveKeysMap.get(DOWN));
+        boolean canGoLeft   = finalMoveOptions.contains(intMovesToMoveKeysMap.get(LEFT));
 
         switch (state){
             case UP:

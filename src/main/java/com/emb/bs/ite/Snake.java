@@ -183,10 +183,10 @@ public class Snake {
                 }
                 readCurrentBoardStatusIntoSession(moveRequest, gameType, s);
 
-                int moveAsInt = s.calculateNextMoveOptions();
-                String move = s.getMoveIntAsString(moveAsInt);
+                MoveWithState moveWithState = s.calculateNextMoveOptions();
+                String move = s.getMoveIntAsString(moveWithState.move);
 
-                if(moveAsInt == Session.DOOMED){
+                if(moveWithState.move == Session.DOOMED){
                     // OK we are DOOMED anyhow - so we can do what ever
                     // we want -> so we just repeat the last move...
                     move = s.LASTMOVE;
@@ -201,12 +201,12 @@ public class Snake {
                 // when we will eat food with our next move, then out tail will stay
                 // where he currently is... in any other case we will update
                 // the 'lastTurnTail'
-                Point resultPos = s.getNewPointForDirection(s.myHead, moveAsInt);
+                Point resultPos = s.getNewPointForDirection(s.myHead, moveWithState.move);
                 if(!s.foodPlaces.contains(resultPos)){
                     s.lastTurnTail = s.myTail;
                 }
 
-                s.logState("=> RESULTING MOVE: "+move, LOG);
+                LOG.info("=> RESULTING MOVE: "+moveWithState);
                 Map<String, String> response = new HashMap<>();
                 response.put("move", move);
                 return response;
