@@ -452,7 +452,7 @@ public class Session {
             LOG.info("FOUND possible KILLs :" +killMoves);
         }
 
-        if (myHealth < 31 || (myLen - getAdvantage() <= maxOtherSnakeLen)) {
+        if (myHealth < 41 || (myLen - getAdvantage() <= maxOtherSnakeLen)) {
             LOG.info("Check for FOOD! health:" + myHealth + " len:" + myLen +"(-"+getAdvantage()+")"+ "<=" + maxOtherSnakeLen);
             // ok we need to start to fetch FOOD!
             // we should move into the direction of the next FOOD! (setting our preferred direction)
@@ -501,7 +501,7 @@ public class Session {
         ArrayList<Point> availableFoods = new ArrayList<>(foodPlaces.size());
         availableFoods.addAll(foodPlaces);
 
-        if (myHealth > 15) {
+        if (myHealth > 25) {
             // in wrappedMode there are no corners... and in the first 5 turns we might pick
             // up food that is around us...
             if(turn > 5 && !mWrappedMode) {
@@ -534,7 +534,7 @@ public class Session {
         TreeMap<Integer, ArrayList<Point>> foodTargetsByDistance = new TreeMap<>();
         for (Point f : availableFoods) {
             int dist = getPointDistance(f, myHead);
-            if(!isLocatedAtBorder(f) || dist < 3 || (dist < 4 && myHealth < 65) || myHealth < 16) {
+            if(!isLocatedAtBorder(f) || dist < 3 || (dist < 4 && myHealth < 65) || myHealth < 51) {
                 boolean addFoodAsTarget = true;
                 for (Point h : snakeHeads) {
                     int otherSnakesDist = getPointDistance(f, h);
