@@ -94,6 +94,7 @@ public class Session {
     private boolean mHungerMode = true;
 
     boolean mWrappedMode = false;
+    private boolean mSoloMode = false;
     private boolean mRoyaleMode = false;
     private boolean mConstrictorMode = false;
     private boolean mHazardPresent = false;
@@ -212,6 +213,7 @@ public class Session {
                 case "solo":
                     enterBorderZone = true;
                     mHungerMode = false;
+                    mSoloMode = true;
                     setFullBoardBounds();
                     break;
 
@@ -1474,6 +1476,12 @@ if(Snake.debugTurn == turn){
                 }
                 return priMove;
             } else if(secMove != null){
+                // if we can catch our TAIL, then
+                if(turn > 250 && myHealth > 50){
+                    MoveWithState tailCatchMove = checkForCatchOwnTail(possibleMoves);
+                    if (tailCatchMove != null) return tailCatchMove;
+                }
+                // and only if we can't catch out tail. we make the second direction move...
                 if(mWrappedMode){
                     state = secMove.move;
                 }
@@ -1514,17 +1522,8 @@ if(Snake.debugTurn == turn){
         // 2a - checking if we can catch our own tail?!
         // in this case we can ignore the approach of other snake heads
         // but only if this will not move into hazard
-        if(lastTurnTail != null){
-            for (MoveWithState aMove : bestList) {
-                if(!mHazardPresent || !aMove.state.sEnterHazardZone){
-                    Point resultingPos = aMove.getResPosForMyHead(this);
-                    // cool - just lat pick that one!
-                    if (resultingPos.equals(lastTurnTail)) {
-                        return aMove;
-                    }
-                }
-            }
-        }
+        MoveWithState tailCatchMove = checkForCatchOwnTail(bestList);
+        if (tailCatchMove != null) return tailCatchMove;
 
         ArrayList<MoveWithState> bestListNoHzd = null;
         // we should check the result list's (at least the first two ones), if there
@@ -1775,17 +1774,36 @@ if(Snake.debugTurn == turn){
             }
         }
 
-        // as fallback take the first entry from our list...
-        MoveWithState finalPossibleFallbackMove = bestList.get(0);
-
         // checking the default movement options from our initial implemented movement plan...
-        int moveFromPlan = tryFollowMovePlan(bestList);
-        if(moveFromPlan != UNKNOWN){
-            MoveWithState routeMove = intMovesToMoveKeysMap.get(moveFromPlan);
-            return bestList.get(bestList.indexOf(routeMove));
-        }else {
-            return finalPossibleFallbackMove;
+        if(mSoloMode) {
+            // as fallback take the first entry from our list...
+            MoveWithState finalPossibleFallbackMove = bestList.get(0);
+
+            int moveFromPlan = tryFollowMovePlan(bestList);
+            if (moveFromPlan != UNKNOWN) {
+                MoveWithState routeMove = intMovesToMoveKeysMap.get(moveFromPlan);
+                return bestList.get(bestList.indexOf(routeMove));
+            } else {
+                return finalPossibleFallbackMove;
+            }
+        }else{
+            return bestList.get( (int) (bestList.size() * Math.random()));
         }
+    }
+
+    private MoveWithState checkForCatchOwnTail(ArrayList<MoveWithState> moveList) {
+        if(lastTurnTail != null){
+            for (MoveWithState aMove : moveList) {
+                if(!mHazardPresent || !aMove.state.sEnterHazardZone){
+                    Point resultingPos = aMove.getResPosForMyHead(this);
+                    // cool - just lat pick that one!
+                    if (resultingPos.equals(lastTurnTail)) {
+                        return aMove;
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     private int countMoves(int[][] map, Point aPos, int move, int count) {
