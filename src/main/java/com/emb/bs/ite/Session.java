@@ -199,7 +199,6 @@ public class Session {
         foodPlaces = new ArrayList<>();
 
         hazardZone = new int[Y][X];
-        //hazardNearbyPlaces = new ArrayList<>();
 
         escapeFromBorder = false;
         escapeFromHazard = false;
@@ -306,11 +305,42 @@ public class Session {
                     }
                 }
                 LOG.info("For: Tn:"+turn+ "-> ADJUSTED MIN/MAX cause of HAZARD TO Y:"+yMin+"-"+yMax+" and X:"+xMin+"-"+xMax);
+            } else /* mRoyaleMode == false */ {
+                // calculate ONLY WHEN NEEDED!!!
+                // multiplyHazardThreadsInMap();
             }
 
         }else{
             // there is no hazard  so we can skip the check in the array...
             enterHazardZone = true;
+        }
+    }
+
+    private void multiplyHazardThreadsInMap(){
+        // POPULATE HAZARD DAMAGE...
+        for(int k=0; k < (Math.max(X, Y) / 2) + 1; k++) {
+            for (int y = 0; y < Y; y++) {
+                for (int x = 0; x < X; x++) {
+                    if (hazardZone[y][x] > k) {
+                        try {
+                            boolean b0 = hazardZone[y + 1][x - 1] > k;
+                            boolean b1 = hazardZone[y + 0][x - 1] > k;
+                            boolean b2 = hazardZone[y - 1][x - 1] > k;
+
+                            boolean b3 = hazardZone[y + 1][x + 0] > k;
+                            boolean b4 = hazardZone[y - 1][x + 0] > k;
+
+                            boolean b5 = hazardZone[y + 1][x + 1] > k;
+                            boolean b6 = hazardZone[y + 0][x + 1] > k;
+                            boolean b7 = hazardZone[y - 1][x + 1] > k;
+                            if (b0 && b1 && b2 && b3 && b4 && b5 && b6 && b7) {
+                                hazardZone[y][x]++;
+                            }
+                        } catch (IndexOutOfBoundsException e) {
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -1475,12 +1505,17 @@ if(Snake.debugTurn == turn){
             }
             moves.add(aMove);
         }
+        ArrayList<MoveWithState> bestList = finalMovesStep01.firstEntry().getValue();
+        if(bestList.size() == 1){
+            return bestList.get(0);
+        }
+
 
         // 2a - checking if we can catch our own tail?!
         // in this case we can ignore the approach of other snake heads
         // but only if this will not move into hazard
         if(lastTurnTail != null){
-            for (MoveWithState aMove : finalMovesStep01.firstEntry().getValue()) {
+            for (MoveWithState aMove : bestList) {
                 if(!mHazardPresent || !aMove.state.sEnterHazardZone){
                     Point resultingPos = aMove.getResPosForMyHead(this);
                     // cool - just lat pick that one!
@@ -1491,7 +1526,6 @@ if(Snake.debugTurn == turn){
             }
         }
 
-        ArrayList<MoveWithState> bestList = finalMovesStep01.firstEntry().getValue();
         ArrayList<MoveWithState> bestListNoHzd = null;
         // we should check the result list's (at least the first two ones), if there
         // will be a MOVE to Border or Move to Hazard implied (when trying to get away
@@ -1570,18 +1604,18 @@ if(Snake.debugTurn == turn){
                 moves.add(aMove);
             }
             bestList = finalMovesStep03.firstEntry().getValue();
+            if(bestList.size() == 1){
+                return bestList.get(0);
+            }
+        } else{
+            if(bestList.size() == 1){
+                return bestList.get(0);
+            }
         }
 
 if(Snake.debugTurn == turn){
     LOG.debug("HALT" + bestList);
 }
-
-        if(bestList.size() == 1){
-            // ok - only one option left... let's return that!
-            return bestList.get(0);
-        }
-
-
         // check if some moves have the "go border" active (and others not)
         boolean goToBorder = true;
         for(MoveWithState aMove: bestList){
@@ -1596,7 +1630,6 @@ if(Snake.debugTurn == turn){
             movesToRemove.clear();
             for(MoveWithState aMove: bestList){
                 if(aMove.state.sEnterBorderZone){
-
                     // keeping the kill moves!!! [even if they are goToBorder=true]
                     if(killMoves == null || !killMoves.contains(aMove.move)){
                         movesToRemove.add(aMove);
@@ -1610,6 +1643,30 @@ if(Snake.debugTurn == turn){
                     // ok - only one option left... let's return that!
                     return bestList.get(0);
                 }
+            }
+        }
+
+if(Snake.debugTurn == turn){
+    LOG.debug("HALT" + bestList);
+}
+        // comparing the hazard moves by its thread level
+        if(mHazardPresent){
+            multiplyHazardThreadsInMap();
+
+            TreeMap<Integer, ArrayList<MoveWithState>> groupByHazardLevel = new TreeMap<>();
+            for (MoveWithState aMove : bestList) {
+                Point resPos = aMove.getResPosForMyHead(this);
+                int hzdLevel = hazardZone[resPos.y][resPos.x];
+                ArrayList<MoveWithState> list = groupByHazardLevel.get(hzdLevel);
+                if(list == null){
+                    list = new ArrayList<>();
+                    groupByHazardLevel.put(hzdLevel, list);
+                }
+                list.add(aMove);
+            }
+            bestList = groupByHazardLevel.firstEntry().getValue();
+            if(bestList.size() == 1){
+                return bestList.get(0);
             }
         }
 
