@@ -506,7 +506,7 @@ public class Session {
         if (myHealth > 25) {
             // in wrappedMode there are no corners... and in the first 5 turns we might pick
             // up food that is around us...
-            if(turn > 5 && !mWrappedMode) {
+            if(turn > 20 && !mWrappedMode) {
                 // food in CORNERS is TOXIC (but if we are already IN the corner we will
                 // take it!
                 if (!(myHead.x == 0 && myHead.y <= 1) || (myHead.x <= 1 && myHead.y == 0)) {
@@ -723,7 +723,7 @@ public class Session {
     }
 
     private boolean isLocatedAtBorder(Point p) {
-        if(turn < 20 || mWrappedMode){
+        if(turn < 21 || mWrappedMode){
             return  false;//hazardNearbyPlaces.contains(p);
         }else {
             if(turn < 50 || myLen < 15 || myLen - 1 < maxOtherSnakeLen){
@@ -734,7 +734,7 @@ public class Session {
                         //|| hazardNearbyPlaces.contains(p)
                         ;
             }else {
-                return p.y <= yMin
+                return  p.y <= yMin
                         || p.y >= yMax
                         || p.x <= xMin
                         || p.x >= xMax
@@ -1285,6 +1285,7 @@ public class Session {
         }
     }*/
 
+    private static int[] options = new int[]{UP, RIGHT, DOWN, LEFT};
     MoveWithState calculateNextMoveOptions() {
         int[] currentActiveBounds = new int[]{yMin, xMin, yMax, xMax};
         // checkSpecialMoves will also activate the 'goForFood' flag - so if this flag is set
@@ -1294,7 +1295,7 @@ public class Session {
         // TODO: WARN - WE NEED TO ENABLE THIS AGAIN!!!
         List<Integer> killMoves = /*null;/*/checkSpecialMoves();
 
-        SortedSet<Integer> options = new TreeSet<Integer>();
+        /*SortedSet<Integer> options = new TreeSet<Integer>();
         // make sure that we check initially our preferred direction...
         if(foodGoForIt) {
             if (mFoodPrimaryDirection != -1) {
@@ -1308,7 +1309,7 @@ public class Session {
         options.add(UP);
         options.add(RIGHT);
         options.add(DOWN);
-        options.add(LEFT);
+        options.add(LEFT);*/
 
         ArrayList<MoveWithState> possibleMoves = new ArrayList<>();
         Session.SavedState startState = saveState();
@@ -1787,7 +1788,7 @@ if(Snake.debugTurn == turn){
                 return finalPossibleFallbackMove;
             }
         }else{
-            return bestList.get( (int) (bestList.size() * Math.random()));
+            return bestList.get((int) (bestList.size() * Math.random()));
         }
     }
 

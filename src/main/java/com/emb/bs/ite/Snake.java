@@ -350,7 +350,8 @@ public class Snake {
             // after we have read all positions/Objects we might to additionally init the current
             // session status...
             s.initSessionAfterFullBoardRead(haz != null);
-            s.logState("MOVE CALLED", LOG);
+            LOG.info("MOVE CALLED - Turn: "+s.turn+" ["+s.gameId+"]");
+            //s.logState("MOVE CALLED", LOG);
             if(logBoard) {
                 s.logBoard(LOG);
             }
