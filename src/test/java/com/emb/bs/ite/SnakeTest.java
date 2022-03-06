@@ -117,19 +117,26 @@ public class SnakeTest {
         // "23061a1d-8c79-4417-9c72-c4db6724ccfd";
         // turn 121 / 11x11
 
+        String gameMode = null;
+        String gameId = null;
         Snake.logBoard = true;
-        String gameId = "c8222b2c-9e76-4c9e-a1fc-8b8931f5c035";
-        Snake.debugTurn = 98;
+        String yourNameIdentifier = "lender";
+
+        // gameId = "c8222b2c-9e76-4c9e-a1fc-8b8931f5c035";
+        // Snake.debugTurn = 98;
         // DECIDE, IF it's smart ot move away from Pink SneakHead INTO the Hazard?!
 
-        gameId = "30662871-f531-43b6-a2d5-6d4d22ddfeca";
-        Snake.debugTurn = 129;
-
-        String yourNameIdentifier = "lender";
-        String gameMode = null;
-        gameMode = "wrapped";
+        // FOR THE "GO LEFT or RIGHT" decision (counting free moves ahead)
+        //gameId = "74aa8f67-6839-4c24-b050-66201e60820d";
+        //Snake.debugTurn = 133;
         //gameMode = "royale";
+
+        gameId = "0c0aab45-5d9f-4e1c-94e2-ce71dcf84918";
+        Snake.debugTurn = 133;
+        //gameMode = "wrapped";
+        gameMode = "royale";
         //gameMode = "solo";
+
         int Y = 11;
         int X = 11;
 
@@ -139,7 +146,7 @@ public class SnakeTest {
         container.connectToServer(collector, uri);
 
         // wait 5 seconds for messages from websocket
-        Thread.sleep(2500);
+        Thread.sleep(5000);
 
         handler.start(convertToReq(collector.list.get(0), gameId, gameMode, Y, X, yourNameIdentifier));
         for(int i=0; i < collector.list.size()-1 ; i++){
