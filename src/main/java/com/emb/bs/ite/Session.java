@@ -380,7 +380,7 @@ public class Session {
                 enterHazardZone = true;
             } else if(MAXDEEP > 1) {
                 LOG.debug("activate MAXDEEP TO: " + MAXDEEP);
-                if(MAXDEEP <= Math.max(myLen/2, 2) && !ignoreOtherTargets){
+                if(MAXDEEP <= Math.max(myLen/1.2, 2) && !ignoreOtherTargets){
                     ignoreOtherTargets = true;
                     LOG.debug("activate IGNOREOTHERS (TARGETS) and reset MAXDEEP from:" + MAXDEEP+" to:"+myLen);
                     MAXDEEP = Math.max(myLen, Y*X/2);
@@ -686,6 +686,26 @@ public class Session {
             return Math.min(Math.abs(p1.x + X - p2.x), Math.abs(p1.x - p2.x)) + Math.min(Math.abs(p1.y + Y - p2.y), Math.abs(p1.y - p2.y));
         }
     }
+
+    private int getPointXDistance(Point p1, Point p2){
+        if(!mWrappedMode){
+            return Math.abs(p1.x - p2.x);
+        }else{
+            // in wrappedMode: if p1.x = 0 & p2.x = 11, then distance is 1
+            return Math.min(Math.abs(p1.x + X - p2.x), Math.abs(p1.x - p2.x));
+        }
+    }
+
+    private int getPointYDistance(Point p1, Point p2){
+        if(!mWrappedMode){
+            return Math.abs(p1.y - p2.y);
+        }else{
+            // in wrappedMode: if p1.x = 0 & p2.x = 11, then distance is 1
+            return Math.min(Math.abs(p1.y + Y - p2.y), Math.abs(p1.y - p2.y));
+        }
+    }
+
+
 
     private int countBlockingsBetweenFoodAndHead(Point cfp) {
         try {
@@ -1629,6 +1649,11 @@ if(Snake.debugTurn == turn){
            // DO NOTHING concerning DANGER-SNEAK Heads in mConstrictorMode
         }
 
+        // if the is already only ome option left..
+        if(bestList.size() == 1){
+            MoveWithState aMove = bestList.get(0);
+        }
+
 
 if(Snake.debugTurn == turn){
     LOG.debug("HALT" + bestList);
@@ -1847,6 +1872,10 @@ if(Snake.debugTurn == turn){
             }
         }
 
+if(Snake.debugTurn == turn){
+    LOG.debug("HALT" + bestList);
+}
+
         // checking the default movement options from our initial implemented movement plan...
         if(mSoloMode) {
             // as fallback take the first entry from our list...
@@ -1860,6 +1889,10 @@ if(Snake.debugTurn == turn){
                 return finalPossibleFallbackMove;
             }
         }else{
+            // ok still options - then we prefer to move to the center?
+
+
+
             return bestList.get((int) (bestList.size() * Math.random()));
         }
     }
@@ -1947,30 +1980,43 @@ if(Snake.debugTurn == turn){
     }
 
     private TreeMap<Integer, ArrayList<MoveWithState>> groupByOtherHeadDistance(ArrayList<MoveWithState> bestList, ArrayList<PointWithBool> dangerousNextMovePositions) {
+if(Snake.debugTurn == turn){
+    LOG.debug("HALT" + bestList);
+}
         TreeMap<Integer, ArrayList<MoveWithState>> returnMap = new TreeMap<>();
         for (MoveWithState aMove : bestList) {
             Point resultingPos = aMove.getResPosForMyHead(this);
-            int sumDistance = 0;
+            int minDist = 100;
             for(PointWithBool otherSnake: dangerousNextMovePositions) {
-                int dist = 3;
+                int minEvalDistance = 3;
+
+                // otherSnake.bool => snake have the same length then we do
                 if(otherSnake.bool){
-                    dist = 2;
+                    minEvalDistance = 2;
                 }
+
                 int faceToFaceDist = getPointDistance(otherSnake.point, resultingPos);
-                if (faceToFaceDist <= dist) {
-                    sumDistance += faceToFaceDist;
-                }else{
-                    sumDistance += dist + 1;
+                if(faceToFaceDist == 2){
+                    // will this end in a CAN BE CATCHED in NEXT Move?!
+                    if(getPointXDistance(otherSnake.point, resultingPos) == 1){
+                        faceToFaceDist = 1;
+                    }
+                }
+                if (faceToFaceDist < minEvalDistance) {
+                    minDist = Math.min(minDist, faceToFaceDist);
                 }
             }
 
-            ArrayList<MoveWithState> moves = returnMap.get(sumDistance);
+            ArrayList<MoveWithState> moves = returnMap.get(minDist);
             if(moves == null) {
                 moves = new ArrayList<>();
-                returnMap.put(sumDistance, moves);
+                returnMap.put(minDist, moves);
             }
             moves.add(aMove);
         }
+if(Snake.debugTurn == turn){
+    LOG.debug("HALT" + bestList);
+}
         return returnMap;
     }
 

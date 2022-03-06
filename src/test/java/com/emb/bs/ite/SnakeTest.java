@@ -143,6 +143,17 @@ public class SnakeTest {
         gameId = "fc9a946c-d9ab-4ff9-8490-e995be2b218c";
         Snake.debugTurn = 26;
 
+        gameId = "d90eeedb-65be-4643-a334-b7a10dde5b8e";
+        Snake.debugTurn = 112;
+
+        // avoid go headTo head position
+        gameId = "b5680644-4ea5-4c05-9df7-b7c73027584c";
+        Snake.debugTurn = 61;
+
+        // avoid go headTo head position
+        gameId = "13919ec9-1d00-46a2-8bd7-2be99e31ab60";
+        Snake.debugTurn = 215;
+
         //gameMode = "wrapped";
         //gameMode = "royale";
         //gameMode = "solo";
