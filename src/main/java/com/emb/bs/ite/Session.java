@@ -234,7 +234,7 @@ public class Session {
                     enterBorderZone = true;
                     mHungerMode = false;
                     mSoloMode = true;
-                    setFullBoardBounds();
+                    //setFullBoardBounds();
                     break;
 
                 case "royale":
@@ -1400,6 +1400,14 @@ if(Snake.debugTurn == turn){
     private MoveWithState getBestMove(ArrayList<MoveWithState> possibleMoves, List<Integer> killMoves) {
         // ok we have plenty of alternative moves...
         // we should check, WHICH of them is the most promising...
+
+
+        /*int moveFromPlanX = tryFollowMovePlan(possibleMoves);
+        if (moveFromPlanX != UNKNOWN) {
+            MoveWithState routeMove = intMovesToMoveKeysMap.get(moveFromPlanX);
+            return possibleMoves.get(possibleMoves.indexOf(routeMove));
+        }*/
+
 
         //1) only keep the moves with the highest DEEP...
         int maxDeptWithOtherTargets = 0;
