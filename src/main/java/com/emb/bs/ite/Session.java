@@ -469,15 +469,12 @@ public class Session {
     private List<Integer> checkKillMoves(){
         // verify if this IF condition makes sense here - we might want to decide later, IF we are going to
         // make the killMove...
-        if(myHealth > 10 && (mWrappedMode || myHead.y != 0 && myHead.x !=0 && myHead.y != Y-1 && myHead.x != X-1)) {
-            ArrayList<Integer> checkedKills = new ArrayList<>();
-            checkForPossibleKillInDirection(UP, checkedKills);
-            checkForPossibleKillInDirection(RIGHT, checkedKills);
-            checkForPossibleKillInDirection(DOWN, checkedKills);
-            checkForPossibleKillInDirection(LEFT, checkedKills);
-            return checkedKills;
-        }
-        return null;
+        ArrayList<Integer> checkedKills = new ArrayList<>();
+        checkForPossibleKillInDirection(UP, checkedKills);
+        checkForPossibleKillInDirection(RIGHT, checkedKills);
+        checkForPossibleKillInDirection(DOWN, checkedKills);
+        checkForPossibleKillInDirection(LEFT, checkedKills);
+        return checkedKills;
     }
 
     private void checkForPossibleKillInDirection(int move, ArrayList<Integer> resList) {
@@ -728,7 +725,7 @@ public class Session {
         }else {
             if(turn < 50 || myLen < 15 || myLen - 1 < maxOtherSnakeLen){
                 return  p.y == 0
-                        || p.y == Y-1
+                        || p.y == Y - 1
                         || p.x == 0
                         || p.x == X - 1
                         //|| hazardNearbyPlaces.contains(p)
@@ -903,7 +900,7 @@ public class Session {
             if (escapeFromBorder && (myHead.x == 0 || myHead.x == X - 1)) {
                 return false;
             } else {
-                int newY = (myHead.y - 1 + Y) % Y;//myPos.y > 0 ? myPos.y - 1 : Y-1;
+                int newY = (myHead.y - 1 + Y) % Y;//myPos.y > 0 ? myPos.y - 1 : Y - 1;
                 return  (mWrappedMode || myHead.y > yMin)
                         && myBody[newY][myHead.x] == 0
                         && snakeBodies[newY][myHead.x] == 0
@@ -921,7 +918,7 @@ public class Session {
 
     private boolean canMoveDown(Point aPos, int[][] map, int c) {
         try {
-            int newY = (aPos.y - 1 + Y) % Y; // aPos.y > 0 ? aPos.y - 1 : Y-1;
+            int newY = (aPos.y - 1 + Y) % Y; // aPos.y > 0 ? aPos.y - 1 : Y - 1;
             return  (mWrappedMode || aPos.y > yMin)
                     && (map[newY][aPos.x] == 0 || map[newY][aPos.x] == 2)
                     && (enterNoGoZone || !willCreateLoop(DOWN, aPos, map, c))
