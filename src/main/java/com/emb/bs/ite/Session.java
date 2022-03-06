@@ -536,9 +536,10 @@ public class Session {
                 // food that is head of another snake that is longer or has
                 // the same length should be ignored...
                 if (snakeBodies[h.y][h.x] >= myLen){
-                    availableFoods.remove(new Point(h.y + 1, h.x + 1));
                     availableFoods.remove(new Point(h.y + 1, h.x + 0));
                     availableFoods.remove(new Point(h.y + 0, h.x + 1));
+                    availableFoods.remove(new Point(h.y - 1, h.x + 0));
+                    availableFoods.remove(new Point(h.y + 0, h.x - 1));
                 }
             }
         }
@@ -551,7 +552,7 @@ public class Session {
                 for (Point h : snakeHeads) {
                     int otherSnakesDist = getPointDistance(f, h);
                     boolean otherIsStronger = snakeBodies[h.y][h.x] >= myLen;
-                    if(dist > otherSnakesDist || (dist == otherSnakesDist && otherIsStronger)) {
+                    if(dist < ((X+Y)/2) && (dist > otherSnakesDist || (dist == otherSnakesDist && otherIsStronger))) {
                         addFoodAsTarget = false;
                         break;
                     }
