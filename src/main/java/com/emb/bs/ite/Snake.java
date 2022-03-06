@@ -117,7 +117,7 @@ public class Snake {
             //response.put("color", "#3CFBA1");
 
             // my beta YELLOW
-            response.put("color", "#33cccc");
+            response.put("color", "#cccc33");
 
             //response.put("color", "#3333cc");
             //response.put("color", "#FF1111");
