@@ -131,10 +131,20 @@ public class SnakeTest {
         //Snake.debugTurn = 133;
         //gameMode = "royale";
 
-        gameId = "0c0aab45-5d9f-4e1c-94e2-ce71dcf84918";
-        Snake.debugTurn = 133;
+        gameId = "e9081dcb-a30a-4b13-a818-e75cc7e934d9";
+        Snake.debugTurn = 291;
+
+        gameId = "841bc7e2-f09a-4284-8bbb-b0560814dc4d";
+        Snake.debugTurn = 203;
+
+        gameId = "eb125ddb-1b0d-4892-a0f9-31d65d714e75";
+        Snake.debugTurn = 46;
+
+        gameId = "fc9a946c-d9ab-4ff9-8490-e995be2b218c";
+        Snake.debugTurn = 26;
+
         //gameMode = "wrapped";
-        gameMode = "royale";
+        //gameMode = "royale";
         //gameMode = "solo";
 
         int Y = 11;
