@@ -469,7 +469,7 @@ public class Session {
     private List<Integer> checkKillMoves(){
         // verify if this IF condition makes sense here - we might want to decide later, IF we are going to
         // make the killMove...
-        if(myHealth > 19 && (mWrappedMode || myHead.y != 0 && myHead.x !=0 && myHead.y != Y-1 && myHead.x != X-1)) {
+        if(myHealth > 10 && (mWrappedMode || myHead.y != 0 && myHead.x !=0 && myHead.y != Y-1 && myHead.x != X-1)) {
             ArrayList<Integer> checkedKills = new ArrayList<>();
             checkForPossibleKillInDirection(UP, checkedKills);
             checkForPossibleKillInDirection(RIGHT, checkedKills);
