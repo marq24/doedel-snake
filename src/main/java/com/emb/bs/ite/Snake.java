@@ -264,10 +264,10 @@ public class Snake {
                 JsonNode aSnake = snakes.get(i);
                 if (!aSnake.get("id").asText().equals(myId)) {
 
-                    int len = aSnake.get("length").asInt();
-                    s.maxOtherSnakeLen = Math.max(len, s.maxOtherSnakeLen);
+                    int snakeLen = aSnake.get("length").asInt();
+                    s.maxOtherSnakeLen = Math.max(snakeLen, s.maxOtherSnakeLen);
                     Point h = new Point(aSnake.get("head"));
-                    s.snakeBodies[h.y][h.x] = len;
+                    s.snakeBodies[h.y][h.x] = snakeLen;
                     s.snakeHeads.add(h);
 
                     // dealing with the bodies of the other snakes...
@@ -308,28 +308,20 @@ public class Snake {
                     }
 
                     if (newYDown > -1 && s.snakeBodies[newYDown][h.x] == 0) {
-                        if(s.snakeNextMovePossibleLocations[newYDown][h.x] == 0) {
-                            s.snakeNextMovePossibleLocationList.add(new Point(newYDown, h.x));
-                        }
-                        s.snakeNextMovePossibleLocations[newYDown][h.x] = Math.max(len, s.snakeNextMovePossibleLocations[newYDown][h.x]);
+                        handleSnakeNextMovePos(snakeLen, new Point(newYDown, h.x), s);
+                        s.snakeNextMovePossibleLocations[newYDown][h.x] = Math.max(snakeLen, s.snakeNextMovePossibleLocations[newYDown][h.x]);
                     }
                     if (newYUp > -1 && s.snakeBodies[newYUp][h.x] == 0) {
-                        if(s.snakeNextMovePossibleLocations[newYUp][h.x] == 0) {
-                            s.snakeNextMovePossibleLocationList.add(new Point(newYUp, h.x));
-                        }
-                        s.snakeNextMovePossibleLocations[newYUp][h.x] = Math.max(len, s.snakeNextMovePossibleLocations[newYUp][h.x]);
+                        handleSnakeNextMovePos(snakeLen, new Point(newYUp, h.x), s);
+                        s.snakeNextMovePossibleLocations[newYUp][h.x] = Math.max(snakeLen, s.snakeNextMovePossibleLocations[newYUp][h.x]);
                     }
                     if (newXLeft > -1 && s.snakeBodies[h.y][newXLeft] == 0) {
-                        if(s.snakeNextMovePossibleLocations[h.y][newXLeft] == 0) {
-                            s.snakeNextMovePossibleLocationList.add(new Point(h.y, newXLeft));
-                        }
-                        s.snakeNextMovePossibleLocations[h.y][newXLeft] = Math.max(len, s.snakeNextMovePossibleLocations[h.y][newXLeft]);
+                        handleSnakeNextMovePos(snakeLen, new Point(h.y, newXLeft), s);
+                        s.snakeNextMovePossibleLocations[h.y][newXLeft] = Math.max(snakeLen, s.snakeNextMovePossibleLocations[h.y][newXLeft]);
                     }
                     if (newXRight > -1 && s.snakeBodies[h.y][newXRight] == 0) {
-                        if(s.snakeNextMovePossibleLocations[h.y][newXRight] == 0) {
-                            s.snakeNextMovePossibleLocationList.add(new Point(h.y, newXRight));
-                        }
-                        s.snakeNextMovePossibleLocations[h.y][newXRight] = Math.max(len, s.snakeNextMovePossibleLocations[h.y][newXRight]);
+                        handleSnakeNextMovePos(snakeLen, new Point(h.y, newXRight), s);
+                        s.snakeNextMovePossibleLocations[h.y][newXRight] = Math.max(snakeLen, s.snakeNextMovePossibleLocations[h.y][newXRight]);
                     }
                 }
             }
@@ -355,6 +347,15 @@ public class Snake {
             if(logBoard) {
                 s.logBoard(LOG);
             }
+        }
+
+        private void handleSnakeNextMovePos(int snakeLen, Point p, Session s) {
+            ArrayList<Integer> list = s.snakeNextMovePossibleLocationList.get(p);
+            if(list == null){
+                list = new ArrayList<>();
+                s.snakeNextMovePossibleLocationList.put(p, list);
+            }
+            list.add(snakeLen);
         }
 
         /**

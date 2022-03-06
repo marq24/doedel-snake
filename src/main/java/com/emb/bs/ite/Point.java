@@ -31,4 +31,9 @@ public class Point {
     protected Point clone() {
         return new Point(y, x);
     }
+
+    @Override
+    public int hashCode() {
+        return (y+1) * 1000 + (x+1);
+    }
 }

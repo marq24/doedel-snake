@@ -74,7 +74,7 @@ public class Session {
     ArrayList<Point> snakeHeads = null;
     int[][] snakeBodies = null;
     int[][] snakeNextMovePossibleLocations = null;
-    ArrayList<Point> snakeNextMovePossibleLocationList = null;
+    HashMap<Point, ArrayList<Integer>> snakeNextMovePossibleLocationList = null;
     int maxOtherSnakeLen = 0;
     int[][] myBody = null;
     int[][] hazardZone = null;
@@ -145,6 +145,26 @@ public class Session {
         enterNoGoZone = savedState.sEnterNoGoZone;
     }
 
+    class PointWithBool{
+        Point point;
+        boolean bool;
+
+        public PointWithBool(Point point, boolean bool) {
+            this.point = point;
+            this.bool = bool;
+        }
+    }
+
+    static class PointWithInt{
+        Point point;
+        int val;
+
+        public PointWithInt(Point point, int val) {
+            this.point = point;
+            this.val = val;
+        }
+    }
+
     private void setFullBoardBounds() {
         yMin = 0;
         xMin = 0;
@@ -184,7 +204,7 @@ public class Session {
         snakeHeads = new ArrayList<>();
         snakeBodies = new int[Y][X];
         snakeNextMovePossibleLocations = new int[Y][X];
-        snakeNextMovePossibleLocationList = new ArrayList<>();
+        snakeNextMovePossibleLocationList = new HashMap<>();
         maxOtherSnakeLen = 0;
 
         myBody = new int[Y][X];
@@ -1563,13 +1583,14 @@ if(Snake.debugTurn == turn){
 
         if(!mConstrictorMode){
             // 2'nd checking the remaining moves which brings us closer to another snake's head...
-            ArrayList<Point> dangerousNextMovePositions = new ArrayList<>();
-            for (Point otherSnakeResultingPos: snakeNextMovePossibleLocationList) {
+            ArrayList<PointWithBool> dangerousNextMovePositions = new ArrayList<>();
+            for (Point otherSnakeResultingPos: snakeNextMovePossibleLocationList.keySet()) {
                 boolean canPickUpFood = foodPlaces.contains(otherSnakeResultingPos);
                 int otherLen = snakeNextMovePossibleLocations[otherSnakeResultingPos.y][otherSnakeResultingPos.x];
                 if (otherLen >= myLen || (canPickUpFood && otherLen + 1 >= myLen)) {
                     // ok here we have another snake location, that cen be dangerous for us
-                    dangerousNextMovePositions.add(otherSnakeResultingPos);
+                    boolean sameLen = otherLen == myLen || (canPickUpFood && otherLen + 1 == myLen);
+                    dangerousNextMovePositions.add(new PointWithBool(otherSnakeResultingPos, sameLen));
                 }
             }
 
@@ -1604,6 +1625,35 @@ if(Snake.debugTurn == turn){
         }else{
            // DO NOTHING concerning DANGER-SNEAK Heads in mConstrictorMode
         }
+
+
+if(Snake.debugTurn == turn){
+    LOG.debug("HALT" + bestList);
+}
+        // checking if one of the moves will be a possible move target for TWO snakes! (if this is the case, then
+        // this will typically end in a corner!
+        ArrayList<MoveWithState> noneDoubleTragets = new ArrayList<>(bestList);
+        boolean modifiedList = false;
+        for(MoveWithState aMove: bestList){
+            Point resPoint = aMove.getResPosForMyHead(this);
+            if(snakeNextMovePossibleLocationList.containsKey(resPoint)){
+                ArrayList<Integer> list = snakeNextMovePossibleLocationList.get(resPoint);
+                if(list.size() > 1){
+                    noneDoubleTragets.remove(aMove);
+                    modifiedList = true;
+                }
+            }
+        }
+        if(modifiedList && noneDoubleTragets.size() > 0){
+            bestList = noneDoubleTragets;
+            if(bestList.size() == 1){
+                MoveWithState aMove = bestList.get(0);
+                if(!mHazardPresent || !aMove.state.sEnterHazardZone){
+                    return aMove;
+                }
+            }
+        }
+
 
         if(foodGoForIt && foodActive != null){
 if(Snake.debugTurn == turn){
@@ -1822,6 +1872,18 @@ if(Snake.debugTurn == turn){
                     }
                 }
             }
+
+            // second run...
+            for (MoveWithState aMove : moveList) {
+                if((!mHazardPresent || !aMove.state.sEnterHazardZone) && !aMove.state.sEnterBorderZone){
+                    Point resultingPos = aMove.getResPosForMyHead(this);
+                    // cool - just lat pick that one!
+                    if(getPointDistance(myTail, resultingPos) == 1 && !foodPlaces.contains(resultingPos)){
+                        return aMove;
+                    }
+                }
+            }
+
         }
         return null;
     }
@@ -1881,17 +1943,21 @@ if(Snake.debugTurn == turn){
                 ;
     }
 
-    private TreeMap<Integer, ArrayList<MoveWithState>> groupByOtherHeadDistance(ArrayList<MoveWithState> bestList, ArrayList<Point> dangerousNextMovePositions) {
+    private TreeMap<Integer, ArrayList<MoveWithState>> groupByOtherHeadDistance(ArrayList<MoveWithState> bestList, ArrayList<PointWithBool> dangerousNextMovePositions) {
         TreeMap<Integer, ArrayList<MoveWithState>> returnMap = new TreeMap<>();
         for (MoveWithState aMove : bestList) {
             Point resultingPos = aMove.getResPosForMyHead(this);
             int sumDistance = 0;
-            for (Point otherSnakeResultingPos: dangerousNextMovePositions) {
-                int faceToFaceDist = getPointDistance(otherSnakeResultingPos, resultingPos);
-                if (faceToFaceDist < 5) {
+            for(PointWithBool otherSnake: dangerousNextMovePositions) {
+                int dist = 3;
+                if(otherSnake.bool){
+                    dist = 2;
+                }
+                int faceToFaceDist = getPointDistance(otherSnake.point, resultingPos);
+                if (faceToFaceDist <= dist) {
                     sumDistance += faceToFaceDist;
                 }else{
-                    sumDistance += 5;
+                    sumDistance += dist + 1;
                 }
             }
 
