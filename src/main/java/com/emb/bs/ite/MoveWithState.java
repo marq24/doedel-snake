@@ -53,6 +53,4 @@ public class MoveWithState {
     public String toString() {
         return Session.getMoveIntAsString(move) + " ["+state.toString()+"]";
     }
-
-
 }

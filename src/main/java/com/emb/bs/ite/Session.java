@@ -246,22 +246,18 @@ public class Session {
         // before we check any special moves, we check, if we are already on the borderline, and if this is the
         // case we can/will disable 'avoid borders' flag...
 
-        if (!enterBorderZone) {
-            if (    myHead.y == 0 ||
-                    myHead.y == Y - 1 ||
-                    myHead.x == 0 ||
-                    myHead.x == X - 1
-            ) {
-                escapeFromBorder = true;
-            }
+        if (    myHead.y == 0 ||
+                myHead.y == Y - 1 ||
+                myHead.x == 0 ||
+                myHead.x == X - 1
+        ) {
+            escapeFromBorder = true;
         }
 
         mHazardPresent = hazardDataIsPresent;
         if(mHazardPresent) {
-            if (!enterHazardZone) {
-                if (hazardZone[myHead.y][myHead.x] > 0 && myHealth < 95) {
-                    escapeFromHazard = true;
-                }
+            if (hazardZone[myHead.y][myHead.x] > 0 && myHealth < 95) {
+                escapeFromHazard = true;
             }
 
             // try to adjust the MIN/MAX values based on the present hazardData...
@@ -307,14 +303,11 @@ public class Session {
                     }
                 }
                 LOG.info("For: Tn:"+turn+ "-> ADJUSTED MIN/MAX cause of HAZARD TO Y:"+yMin+"-"+yMax+" and X:"+xMin+"-"+xMax);
-            } else /* mRoyaleMode == false */ {
-                // calculate ONLY WHEN NEEDED!!!
-                // multiplyHazardThreadsInMap();
             }
-
         }else{
             // there is no hazard  so we can skip the check in the array...
             enterHazardZone = true;
+            escapeFromHazard = false;
         }
     }
 
@@ -1368,32 +1361,66 @@ if(Snake.debugTurn == turn){
         // we should check, WHICH of them is the most promising...
 
         //1) only keep the moves with the highest DEEP...
-        int maxDept = 0;
-        HashSet<MoveWithState> movesToRemove = new HashSet<>();
+        int maxDeptWithOtherTargets = 0;
+        int maxDeptWithoutOtherTargets = 0;
         for (MoveWithState aMove : possibleMoves) {
             int dept = aMove.state.sMAXDEEP;
-            maxDept = Math.max(maxDept, dept);
-        }
-        for (MoveWithState aMove : possibleMoves) {
-            int dept = aMove.state.sMAXDEEP;
-            if (dept < maxDept) {
-                movesToRemove.add(aMove);
+            if(aMove.state.sIgnoreOtherTargets){
+                maxDeptWithoutOtherTargets = Math.max(maxDeptWithoutOtherTargets, dept);
+            }else{
+                maxDeptWithOtherTargets = Math.max(maxDeptWithOtherTargets, dept);
             }
         }
 
-        if(movesToRemove.size() >0) {
-            possibleMoves.removeAll(movesToRemove);
-            movesToRemove.clear();
+        int maxDept = 0;
+        boolean removeIgnoreOtherTargets = true;
+        // there are moves that can be more promising (if the other snakes does not move into our way)
+        if(maxDeptWithoutOtherTargets > 0) {
+            if(maxDeptWithOtherTargets == 0){
+                // ok we are in the situation, that all the possible moves have the "IGNORE OTHER MOVE"
+                // flag...
+                maxDept = maxDeptWithoutOtherTargets;
+                removeIgnoreOtherTargets = false;
+            } else if(maxDeptWithOtherTargets >= maxDeptWithoutOtherTargets){
+                maxDept = maxDeptWithOtherTargets;
+                removeIgnoreOtherTargets = true;
+            } else if(maxDeptWithoutOtherTargets > myLen && maxDeptWithoutOtherTargets > maxDeptWithOtherTargets){
+                // so ignoring th other targets will give use at least the possibility to survive
+                maxDept = maxDeptWithoutOtherTargets;
+                removeIgnoreOtherTargets = false;
+            } else{
+                // we are "nearly doomed" anyhow - so what ever move we are going to choose we will not have
+                // a chance to fit into the remaining space...
+                maxDept = Math.min(maxDeptWithoutOtherTargets, maxDeptWithOtherTargets);
+                removeIgnoreOtherTargets = false;
+            }
+        }else{
+            // all possible moves can be made consider the moves of the other snakes as well...
+            maxDept = maxDeptWithOtherTargets;
+            removeIgnoreOtherTargets = true;
+        }
 
-            if(possibleMoves.size() == 1){
-                // ok only one option left - so let's use this...
+        // do finally the filtering...
+        ArrayList<MoveWithState> keepOnlyWithHighDeep = new ArrayList<>(possibleMoves);
+        for (MoveWithState aMove : possibleMoves) {
+            int dept = aMove.state.sMAXDEEP;
+            if (dept < maxDept) {
+                keepOnlyWithHighDeep.remove(aMove);
+            }else if(removeIgnoreOtherTargets && aMove.state.sIgnoreOtherTargets){
+                keepOnlyWithHighDeep.remove(aMove);
+            }
+        }
+        if(keepOnlyWithHighDeep.size()>0) {
+            possibleMoves = keepOnlyWithHighDeep;
+            // ok only one option left - so let's use this...
+            if (possibleMoves.size() == 1) {
                 return possibleMoves.get(0);
             }
         }
 
         //2) remove all "toDangerous" moves (when we have better alternatives)
-        boolean hasEscapeFromHazard = false;
-        boolean hasEscapeFromBorder = false;
+        boolean aMoveHasEscapeFromHazard = false;
+        boolean aMoveHasEscapeFromBorder = false;
         boolean keepGoDanger = true;
         boolean keepGoNoGo = true;
         for (MoveWithState aMove : possibleMoves) {
@@ -1403,27 +1430,30 @@ if(Snake.debugTurn == turn){
             if (keepGoDanger && !aMove.state.sEnterDangerZone) {
                 keepGoDanger = false;
             }
-            if(!hasEscapeFromHazard){
-                hasEscapeFromHazard = aMove.state.sEscapeFromHazard;
+
+            // escape values will be used later in the code!
+            if(!aMoveHasEscapeFromHazard){
+                aMoveHasEscapeFromHazard = aMove.state.sEscapeFromHazard;
             }
-            if(!hasEscapeFromBorder){
-                hasEscapeFromBorder = aMove.state.sEscapeFromBorder;
-            }
-        }
-        for (MoveWithState aMove : possibleMoves) {
-            if (!keepGoNoGo && aMove.state.sEnterNoGoZone){
-                movesToRemove.add(aMove);
-            }
-            if (!keepGoDanger && aMove.state.sEnterDangerZone){
-                movesToRemove.add(aMove);
+            if(!aMoveHasEscapeFromBorder){
+                aMoveHasEscapeFromBorder = aMove.state.sEscapeFromBorder;
             }
         }
 
-        if(movesToRemove.size() >0) {
-            possibleMoves.removeAll(movesToRemove);
-            movesToRemove.clear();
+        // do finally the filtering...
+        ArrayList<MoveWithState> keepOnlyWithLowRisk = new ArrayList<>(possibleMoves);
+        for (MoveWithState aMove : possibleMoves) {
+            if (!keepGoNoGo && aMove.state.sEnterNoGoZone){
+                keepOnlyWithLowRisk.remove(aMove);
+            }
+            if (!keepGoDanger && aMove.state.sEnterDangerZone){
+                keepOnlyWithLowRisk.remove(aMove);
+            }
+        }
+        if(keepOnlyWithLowRisk.size() > 0) {
+            possibleMoves = keepOnlyWithLowRisk;
             // ok only one option left - so let's use this...
-            if(possibleMoves.size() == 1){
+            if (possibleMoves.size() == 1) {
                 return possibleMoves.get(0);
             }
         }
@@ -1458,20 +1488,14 @@ if(Snake.debugTurn == turn){
                 ||  (!secMove.state.sEnterDangerZone && priMove.state.sEnterDangerZone)
                 ){
                     // prefer secondary!
-                    if(mWrappedMode){
-                        state = secMove.move;
-                    }
+                    state = secMove.move;
                     return secMove;
                 }else{
-                    if(mWrappedMode){
-                        state = priMove.move;
-                    }
+                    state = priMove.move;
                     return priMove;
                 }
             } else if(priMove != null){
-                if(mWrappedMode){
-                    state = priMove.move;
-                }
+                state = priMove.move;
                 return priMove;
             } else if(secMove != null){
                 // if we can catch our TAIL, then
@@ -1480,9 +1504,7 @@ if(Snake.debugTurn == turn){
                     if (tailCatchMove != null) return tailCatchMove;
                 }
                 // and only if we can't catch out tail. we make the second direction move...
-                if(mWrappedMode){
-                    state = secMove.move;
-                }
+                state = secMove.move;
                 return secMove;
             }
         } else if(mFoodPrimaryDirection != -1) {
@@ -1501,8 +1523,12 @@ if(Snake.debugTurn == turn){
             Point resultingPos = aMove.getResPosForMyHead(this);
             // checking if we are under direct threat
             int aMoveRisk = snakeNextMovePossibleLocations[resultingPos.y][resultingPos.x];
-            if(aMoveRisk > 0 && aMoveRisk < myLen){
-                aMoveRisk = 0;
+            if(aMoveRisk > 0){
+                if(aMoveRisk < myLen){
+                    aMoveRisk = 0;
+                } else if(aMoveRisk == myLen){
+                    aMoveRisk = 1;
+                }
             }
             ArrayList<MoveWithState> moves = groupByDirectThread.get(aMoveRisk);
             if(moves == null) {
@@ -1515,7 +1541,6 @@ if(Snake.debugTurn == turn){
         if(bestList.size() == 1){
             return bestList.get(0);
         }
-
 
         // 2a - checking if we can catch our own tail?!
         // in this case we can ignore the approach of other snake heads
@@ -1641,18 +1666,15 @@ if(Snake.debugTurn == turn){
                 moves.add(aMove);
             }
             bestList = groupByEnterBorderZone.firstEntry().getValue();
-            if(bestList.size() == 1){
-                return bestList.get(0);
-            }
-        } else{
-            if(bestList.size() == 1){
-                return bestList.get(0);
-            }
         }
 
 if(Snake.debugTurn == turn){
     LOG.debug("HALT" + bestList);
 }
+        if(bestList.size() == 1){
+            return bestList.get(0);
+        }
+
         // check if some moves have the "go border" active (and others not)
         boolean goToBorder = true;
         for(MoveWithState aMove: bestList){
@@ -1662,22 +1684,22 @@ if(Snake.debugTurn == turn){
                 break;
             }
         }
+
         // not all entries have go-to-border...
         if(!goToBorder){
-            movesToRemove.clear();
+            ArrayList<MoveWithState> movesWithoutGoToBorder = new ArrayList<>(bestList);
             for(MoveWithState aMove: bestList){
                 if(aMove.state.sEnterBorderZone){
                     // keeping the kill moves!!! [even if they are goToBorder=true]
                     if(killMoves == null || !killMoves.contains(aMove.move)){
-                        movesToRemove.add(aMove);
+                        movesWithoutGoToBorder.remove(aMove);
                     }
                 }
             }
-            if(movesToRemove.size() > 0) {
-                bestList.removeAll(movesToRemove);
-                movesToRemove.clear();
+            if(movesWithoutGoToBorder.size() > 0) {
+                bestList = movesWithoutGoToBorder;
+                // ok - only one option left... let's return that!
                 if(bestList.size() == 1){
-                    // ok - only one option left... let's return that!
                     return bestList.get(0);
                 }
             }
@@ -1721,14 +1743,14 @@ if(Snake.debugTurn == turn){
         }
 
         // checking if there is a GETAWAY from HAZARD or BORDER
-        if(hasEscapeFromHazard) {
+        if(aMoveHasEscapeFromHazard) {
             for (MoveWithState aMove : bestList) {
                 if (aMove.state.sEscapeFromHazard) {
                     return aMove;
                 }
             }
         }
-        if(hasEscapeFromBorder) {
+        if(aMoveHasEscapeFromBorder) {
             for (MoveWithState aMove : bestList) {
                 if (aMove.state.sEscapeFromBorder) {
                     return aMove;
@@ -1792,7 +1814,7 @@ if(Snake.debugTurn == turn){
     private MoveWithState checkForCatchOwnTail(ArrayList<MoveWithState> moveList) {
         if(lastTurnTail != null){
             for (MoveWithState aMove : moveList) {
-                if(!mHazardPresent || !aMove.state.sEnterHazardZone){
+                if((!mHazardPresent || !aMove.state.sEnterHazardZone) && !aMove.state.sEnterBorderZone){
                     Point resultingPos = aMove.getResPosForMyHead(this);
                     // cool - just lat pick that one!
                     if (resultingPos.equals(lastTurnTail)) {
@@ -1866,10 +1888,10 @@ if(Snake.debugTurn == turn){
             int sumDistance = 0;
             for (Point otherSnakeResultingPos: dangerousNextMovePositions) {
                 int faceToFaceDist = getPointDistance(otherSnakeResultingPos, resultingPos);
-                if (faceToFaceDist < 3) {
+                if (faceToFaceDist < 5) {
                     sumDistance += faceToFaceDist;
                 }else{
-                    sumDistance += 3;
+                    sumDistance += 5;
                 }
             }
 
