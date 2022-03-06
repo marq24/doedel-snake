@@ -1877,7 +1877,7 @@ if(Snake.debugTurn == turn){
 }
 
         // checking the default movement options from our initial implemented movement plan...
-        if(mSoloMode) {
+        if(true){//mSoloMode) {
             // as fallback take the first entry from our list...
             MoveWithState finalPossibleFallbackMove = bestList.get(0);
 
@@ -1890,9 +1890,6 @@ if(Snake.debugTurn == turn){
             }
         }else{
             // ok still options - then we prefer to move to the center?
-
-
-
             return bestList.get((int) (bestList.size() * Math.random()));
         }
     }
