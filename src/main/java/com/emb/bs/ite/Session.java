@@ -1443,6 +1443,8 @@ if(Snake.debugTurn == turn){
             removeIgnoreOtherTargets = true;
         }
 
+        maxDept = Math.min(maxDept, (int) (myLen*1.4));
+
         // do finally the filtering...
         ArrayList<MoveWithState> keepOnlyWithHighDeep = new ArrayList<>(possibleMoves);
         for (MoveWithState aMove : possibleMoves) {
