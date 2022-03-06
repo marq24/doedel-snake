@@ -462,10 +462,10 @@ public class Session {
     }
 
     private List<Integer> checkSpecialMoves() {
-        List<Integer> killMoves = checkKillMoves();
+        /*List<Integer> killMoves = checkKillMoves();
         if(killMoves != null && killMoves.size() >0){
             LOG.info("FOUND possible KILLs :" +killMoves);
-        }
+        }*/
 
         if (myHealth < 41 || (myLen - getAdvantage() <= maxOtherSnakeLen)) {
             LOG.info("Check for FOOD! health:" + myHealth + " len:" + myLen +"(-"+getAdvantage()+")"+ "<=" + maxOtherSnakeLen);
@@ -476,7 +476,7 @@ public class Session {
             // need to reset all food parameters...
             resetFoodStatus();
         }
-        return killMoves;
+        return null;//killMoves;
     }
 
     private List<Integer> checkKillMoves(){
@@ -1401,7 +1401,10 @@ if(Snake.debugTurn == turn){
                 // flag...
                 maxDept = maxDeptWithoutOtherTargets;
                 removeIgnoreOtherTargets = false;
-            } else if(maxDeptWithOtherTargets >= maxDeptWithoutOtherTargets){
+            } else if(maxDeptWithOtherTargets >= maxDeptWithoutOtherTargets) {
+                maxDept = maxDeptWithOtherTargets;
+                removeIgnoreOtherTargets = true;
+            } else if(maxDeptWithOtherTargets >= myLen){
                 maxDept = maxDeptWithOtherTargets;
                 removeIgnoreOtherTargets = true;
             } else if(maxDeptWithoutOtherTargets > myLen && maxDeptWithoutOtherTargets > maxDeptWithOtherTargets){
