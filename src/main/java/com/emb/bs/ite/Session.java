@@ -231,9 +231,9 @@ public class Session {
                     break;
 
                 case "solo":
-                    enterBorderZone = true;
                     mHungerMode = false;
                     mSoloMode = true;
+                    //enterBorderZone = true;
                     //setFullBoardBounds();
                     break;
 
@@ -828,7 +828,7 @@ public class Session {
                 if(finalMap == null) {
                     finalMap = new int[Y][X];
                     finalMap[myHead.y][myHead.x] = 1;
-                    for (int y = 0; y < X; y++) {
+                    for (int y = 0; y < Y; y++) {
                         for (int x = 0; x < X; x++) {
                             if(lastTurnTail != null && lastTurnTail.y == y && lastTurnTail.x == x) {
                                 finalMap[y][x] = 2; // the GOLDEN ASS
@@ -851,6 +851,10 @@ public class Session {
                 boolean noLF = !canMoveLeft(newPos, finalMap, count);
                 boolean noRT = !canMoveRight(newPos, finalMap, count);
 
+if(turn >= Snake.debugTurn){
+    //logMap(finalMap, count);
+    LOG.debug("HALT");
+}
                 if (noUP && noDW && noLF && noRT) {
                     return true;
                 }
@@ -862,6 +866,180 @@ public class Session {
         return false;
     }
 
+    private boolean XwillCreateLoop(int move, Point aPos, int[][] finalMap, int count) {
+        Point newPos = getNewPointForDirection(aPos, move);
+        Map<Integer, ArrayList<Point>> data = XgroupSpaces(newPos);
+        if(data.containsKey(Integer.MAX_VALUE)){
+            ArrayList<Point> pointsFromWhichTheTailCanBeCaught = data.get(Integer.MAX_VALUE);
+        }
+
+        HashMap<Point, Integer> space = new HashMap<>();
+        for(ArrayList<Point> aList: data.values()){
+            int len = aList.size();
+            for(Point aPoint: aList){
+                space.put(aPoint, len);
+            }
+        }
+
+        if(move == LEFT){
+            if(Snake.debugTurn == turn){
+                LOG.info(""+data);
+            }
+        }
+
+        return false;
+    }
+
+    private Map<Integer, ArrayList<Point>> XgroupSpaces(Point aPos){
+
+        // generating the resulting MAP (occupied fields after the selected
+        // move will be made)...
+        int[][] finalMap = new int[Y][X];
+        finalMap[myHead.y][myHead.x] = 1;
+        for (int y = 0; y < Y; y++) {
+            for (int x = 0; x < X; x++) {
+                if(lastTurnTail != null && lastTurnTail.y == y && lastTurnTail.x == x) {
+                    finalMap[y][x] = 2; // the GOLDEN ASS
+                }else if (myBody[y][x] > 0) {
+                    finalMap[y][x] = 1;
+                } else if (snakeBodies[y][x] > 0) {
+                    finalMap[y][x] = 1;
+                } else if (!ignoreOtherTargets && snakeNextMovePossibleLocations[y][x] > 0) {
+                    finalMap[y][x] = 1;
+                }
+            }
+        }
+        finalMap[aPos.y][aPos.x] = 1;
+
+        //the available fields map...
+        //finalMap[newPos.y][newPos.x] = 1;
+
+        int num = 1;
+        int[][] freeMap = new int[Y][X];
+        for (int y = yMin; y <= yMax; y++) {
+            for (int x = yMin; x <= xMax; x++) {
+                if(finalMap[y][x] == 0) {
+                    freeMap[y][x] = num++;
+                } else if (finalMap[y][x] == 2){
+                    freeMap[y][x] = Integer.MAX_VALUE;
+                }
+            }
+        }
+        // the map where each field that is not occupied received a number...
+        // logFreeMap2(freeMap, newPos, 0);
+
+
+        for (int y = 0; y < Y; y++) {
+            for (int x = 0; x < X; x++) {
+                int count = 0;
+                if(Xup(freeMap, y, x)){
+                    count++;
+                }
+                if(Xdown(freeMap, y, x)){
+                    count++;
+                }
+                if(Xleft(freeMap, y, x)){
+                    count++;
+                }
+                if(Xright(freeMap, y, x)){
+                    count++;
+                }
+
+                if(count < 2){
+                    freeMap[y][x] = 0;
+                }
+            }
+        }
+        // removed from the map the fields that have only a single connection [aka DEAD ends]
+        // logFreeMap2(freeMap, newPos, 0);
+
+        for (int i=0; i < (X+Y)/2; i++){
+            for (int y = 0; y < Y; y++) {
+                for (int x = 0; x < X; x++) {
+                    Xwash(freeMap, y, x);
+                }
+            }
+            for (int y = Y - 1; y >= 0; y--) {
+                for (int x = X - 1; x >= 0; x--) {
+                    Xwash(freeMap, y, x);
+                }
+            }
+        }
+        // populate the MAX field value to all areas...
+        // logFreeMap2(freeMap, newPos, 0);
+
+        logFreeMap2(freeMap, aPos, 0);
+
+        // finally, grouping/counting the size of the "free" space fields
+        HashMap<Integer, ArrayList<Point>> data = new HashMap<>();
+        for (int y = 0; y < Y; y++) {
+            for (int x = 0; x < X; x++) {
+                int key = freeMap[y][x];
+                ArrayList<Point> list = data.get(key);
+                if(list == null){
+                    list = new ArrayList<>();
+                    data.put(key, list);
+                }
+                list.add(new Point(y,x));
+            }
+        }
+        return data;
+    }
+
+    private boolean Xup(int[][] map, int y, int x){
+        return y + 1 < Y && map[y + 1][x] > 0;
+    }
+    private boolean Xdown(int[][] map, int y, int x){
+        return y - 1 > 0 && map[y - 1][x] > 0;
+    }
+    private boolean Xleft(int[][] map, int y, int x){
+        return x - 1 > 0 && map[y][x - 1] > 0;
+    }
+    private boolean Xright(int[][] map, int y, int x){
+        return x + 1 < X && map[y][x + 1] > 0;
+    }
+
+    private void Xwash(int[][] map, int y, int x) {
+        int i0 = map[y][x];
+        if (i0 > 0) {
+            int maxValue = i0;
+
+            boolean up = Xup(map, y, x);
+            boolean down = Xdown(map, y, x);
+            boolean right = Xright(map, y, x);
+            boolean left = Xleft(map, y, x);
+
+            // find the max value (of all four neighbours)
+            if (up) {
+                maxValue = Math.max(maxValue, map[y + 1][x]);
+            }
+            if (down) {
+                maxValue = Math.max(maxValue, map[y - 1][x]);
+            }
+            if (right) {
+                maxValue = Math.max(maxValue, map[y][x + 1]);
+            }
+            if (left) {
+                maxValue = Math.max(maxValue, map[y][x - 1]);
+            }
+
+            // populate the max value...
+            if(up) {
+                map[y + 1][x] = maxValue;
+            }
+            if(down){
+                map[y - 1][x] = maxValue;
+            }
+            if(right){
+                map[y][x + 1] = maxValue;
+            }
+            if(left){
+                map[y][x - 1] = maxValue;
+            }
+            map[y][x] = maxValue;
+        }
+    }
+
     private boolean canMoveUp() {
         try {
             if (escapeFromBorder && (myHead.x == 0 || myHead.x == X - 1)) {
@@ -871,6 +1049,7 @@ public class Session {
                 return  (mWrappedMode || myHead.y < yMax)
                         && myBody[newY][myHead.x] == 0
                         && snakeBodies[newY][myHead.x] == 0
+                        && (enterBorderZone || !(newY == 0 || newY == Y-1 || myHead.x == 0 || myHead.x == X-1))
                         && (!escapeFromHazard || hazardZone[newY][myHead.x] == 0)
                         && (enterHazardZone || myHealth > 96 || hazardZone[newY][myHead.x] == 0)
                         && (enterDangerZone || snakeNextMovePossibleLocations[newY][myHead.x] < myLen)
@@ -904,6 +1083,7 @@ public class Session {
                 return  (mWrappedMode || myHead.x < xMax)
                         && myBody[myHead.y][newX] == 0
                         && snakeBodies[myHead.y][newX] == 0
+                        && (enterBorderZone || !(myHead.y == 0 || myHead.y == Y-1 || newX == 0 || newX == X-1))
                         && (!escapeFromHazard || hazardZone[myHead.y][newX] == 0)
                         && (enterHazardZone || myHealth > 96 || hazardZone[myHead.y][newX] == 0)
                         && (enterDangerZone || snakeNextMovePossibleLocations[myHead.y][newX] < myLen)
@@ -938,6 +1118,7 @@ public class Session {
                 return  (mWrappedMode || myHead.y > yMin)
                         && myBody[newY][myHead.x] == 0
                         && snakeBodies[newY][myHead.x] == 0
+                        && (enterBorderZone || !(newY == 0 || newY == Y-1 || myHead.x == 0 || myHead.x == X-1))
                         && (!escapeFromHazard || hazardZone[newY][myHead.x] == 0)
                         && (enterHazardZone || myHealth > 96 || hazardZone[newY][myHead.x] == 0)
                         && (enterDangerZone || snakeNextMovePossibleLocations[newY][myHead.x] < myLen)
@@ -972,6 +1153,7 @@ public class Session {
                 return  (mWrappedMode || myHead.x > xMin)
                         && myBody[myHead.y][newX] == 0
                         && snakeBodies[myHead.y][newX] == 0
+                        && (enterBorderZone || !(myHead.y == 0 || myHead.y == Y-1 || newX == 0 || newX == X-1))
                         && (!escapeFromHazard || hazardZone[myHead.y][newX] == 0)
                         && (enterHazardZone || myHealth > 96 || hazardZone[myHead.y][newX] == 0)
                         && (enterDangerZone || snakeNextMovePossibleLocations[myHead.y][newX] < myLen)
@@ -1117,6 +1299,94 @@ public class Session {
         }
         LOG.info(b.toString());
     }
+
+    private void logFreeMap(int[][] aMap, int c) {
+        LOG.info("XXL TurnNo:"+turn+" len:"+ myLen +" maxSpace:"+c);
+        StringBuffer z = new StringBuffer();
+        z.append(" ┌");
+        for(int i=0; i< X; i++){z.append('─');}
+        z.append('┐');
+        LOG.info(z.toString());
+
+        for (int y = Y - 1; y >= 0; y--) {
+            StringBuffer b = new StringBuffer();
+            b.append(y % 10);
+            b.append('│');
+            for (int x = 0; x < X; x++) {
+                if(aMap[y][x]>0){
+                    b.append(aMap[y][x]%10);
+                }else{
+                    b.append(' ');
+                }
+            }
+            b.append('│');
+            LOG.info(b.toString());
+        }
+        StringBuffer y = new StringBuffer();
+        y.append(" └");
+        for(int i=0; i< X; i++){y.append('─');}
+        y.append('┘');
+        LOG.info(y.toString());
+        StringBuffer b = new StringBuffer();
+        b.append("  ");
+        for (int i = 0; i < X; i++) {
+            b.append(i % 10);
+        }
+        LOG.info(b.toString());
+    }
+
+    private void logFreeMap2(int[][] aMap, Point pos, int c) {
+        LOG.info("XXL TurnNo:"+turn+" len:"+ myLen +" maxSpace:"+c);
+        StringBuffer z = new StringBuffer();
+        z.append(" ┌");
+        for(int i=0; i< X; i++){z.append("───");}
+        z.append('┐');
+        LOG.info(z.toString());
+
+        for (int y = Y - 1; y >= 0; y--) {
+            StringBuffer b = new StringBuffer();
+            b.append(y % 10);
+            b.append('│');
+            for (int x = 0; x < X; x++) {
+                if(myHead.y == y && myHead.x == x) {
+                    b.append("| X");
+                } else if(pos != null && pos.y == y && pos.x == x) {
+                    b.append("| *");
+                }else if(aMap[y][x]>0){
+                    if(aMap[y][x] == Integer.MAX_VALUE) {
+                        b.append("|yy");
+                    }else{
+                        int val = aMap[y][x]%100;
+                        if(val < 10){
+                            b.append("|0" + val);
+                        }else {
+                            b.append("|" + val);
+                        }
+                    }
+                }else{
+                    b.append("|  ");
+                }
+            }
+            b.append('│');
+            LOG.info(b.toString());
+        }
+        StringBuffer y = new StringBuffer();
+        y.append(" └");
+        for(int i=0; i< X; i++){y.append("───");}
+        y.append('┘');
+        LOG.info(y.toString());
+        StringBuffer b = new StringBuffer();
+        b.append("  ");
+        for (int i = 0; i < X; i++) {
+            if(i<10){
+                b.append("|0" + i);
+            }else {
+                b.append("|" + i);
+            }
+        }
+        LOG.info(b.toString());
+    }
+
 
     /*ArrayList<Integer> cmdChain = null;
     int firstMoveToTry = -1;
@@ -1344,6 +1614,7 @@ public class Session {
 
         ArrayList<MoveWithState> possibleMoves = new ArrayList<>();
         Session.SavedState startState = saveState();
+
         for(int possibleDirection: options){
             restoreState(startState);
             restoreBoardBounds(currentActiveBounds);
@@ -1362,7 +1633,11 @@ public class Session {
                     setFullBoardBounds();
                 }
             }
+
             // ok checking the next direction...
+if(turn >= Snake.debugTurn){
+    LOG.debug("HALT");
+}
             int moveResult = moveDirection(possibleDirection, null);
             if(moveResult != UNKNOWN && moveResult != DOOMED) {
                 MoveWithState move = new MoveWithState(moveResult, this);
@@ -1401,9 +1676,10 @@ if(Snake.debugTurn == turn){
         // ok we have plenty of alternative moves...
         // we should check, WHICH of them is the most promising...
 
-
         /*int moveFromPlanX = tryFollowMovePlan(possibleMoves);
         if (moveFromPlanX != UNKNOWN) {
+            LOG.info("FOLLOW PLAN: "+getMoveIntAsString(moveFromPlanX));
+
             MoveWithState routeMove = intMovesToMoveKeysMap.get(moveFromPlanX);
             return possibleMoves.get(possibleMoves.indexOf(routeMove));
         }*/
@@ -2028,6 +2304,92 @@ if(Snake.debugTurn == turn){
         return returnMap;
     }
 
+    private int XtryFollowMovePlan(ArrayList<MoveWithState> finalMoveOptions) {
+        ArrayList<MoveWithState> noBorder = new ArrayList<>(finalMoveOptions);
+        for(MoveWithState aMove : finalMoveOptions){
+            if(aMove.state.sEnterBorderZone){
+                noBorder.remove(aMove);
+            }
+        }
+        finalMoveOptions = noBorder;
+
+        // now we can check, if we can follow the default movement plan...
+        // for all the possible MOVE directions we might have to set our BoardBounds?!
+        boolean canGoUp = finalMoveOptions.contains(intMovesToMoveKeysMap.get(UP));
+        boolean canGoRight = finalMoveOptions.contains(intMovesToMoveKeysMap.get(RIGHT));
+        boolean canGoDown = finalMoveOptions.contains(intMovesToMoveKeysMap.get(DOWN));
+        boolean canGoLeft = finalMoveOptions.contains(intMovesToMoveKeysMap.get(LEFT));
+
+if(turn >= Snake.debugTurn){
+    LOG.debug("HALT");
+}
+        if(canGoUp && tPhase == 0) {
+            if (myHead.x == xMax) {
+                LOG.info("PONG");
+                tPhase = 1;
+                state = LEFT;
+                return UP;
+            } else if(myHead.x == xMin + 1) {
+                LOG.info("PING");
+                tPhase = 1;
+                state = RIGHT;
+                return UP;
+            }
+        }
+        if(myHead.x == xMin){
+            tPhase = 2;
+        }else if(myHead.x > xMin + 1 && myHead.x < xMax){
+            tPhase = 0;
+        }
+        if(canGoDown && tPhase == 2){
+            state = DOWN;
+            return DOWN;
+        }
+
+        if(finalMoveOptions.size() == 1){
+            if(tPhase == 1) {
+                tPhase = 0;
+            }
+            return finalMoveOptions.get(0).move;
+        }
+
+
+        switch (state) {
+            case UP:
+                if (canGoUp) {
+                    state = UP;
+                    return UP;
+                } else{
+                    return planDecideForRightOrLeft(canGoRight, canGoLeft);
+                }
+
+            case RIGHT:
+                if (canGoRight) {
+                    state = RIGHT;
+                    return RIGHT;
+                } else {
+                    return planDecideForUpOrDown(canGoUp, canGoDown);
+                }
+
+            case DOWN:
+                if(canGoDown){
+                    state = DOWN;
+                    return DOWN;
+                }else{
+                    return planDecideForRightOrLeft(canGoRight, canGoLeft);
+                }
+
+            case LEFT:
+                if(canGoLeft){
+                    state = LEFT;
+                    return LEFT;
+                }else{
+                    return planDecideForUpOrDown(canGoUp, canGoDown);
+                }
+        }
+        return UNKNOWN;
+    }
+
     private int tryFollowMovePlan(ArrayList<MoveWithState> finalMoveOptions) {
         LOG.info("follow our path... (cause no other priority could be found)");
         // now we can check, if we can follow the default movement plan...
@@ -2040,6 +2402,7 @@ if(Snake.debugTurn == turn){
         switch (state){
             case UP:
                 if(canGoUp) {
+                    // only move up till 1/3 of the board...
                     return UP;
                 } else {
                     if (myHead.x < xMax / 2 || !canGoLeft){ //cmdChain.contains(LEFT)) {
@@ -2237,6 +2600,30 @@ if(Snake.debugTurn == turn){
                 state = DOWN;
                 return DOWN;
             }
+        }
+        return UNKNOWN;
+    }
+
+    private int planDecideForRightOrLeft(boolean canGoRight, boolean canGoLeft) {
+        // if we are in the pending mode, we prefer to go ALWAYS-UP
+        if (canGoRight && (myHead.x < xMax / 2 || !canGoLeft)) {
+            state = RIGHT;
+            return RIGHT;
+        } else if (canGoLeft){
+            state = LEFT;
+            return LEFT;
+        }
+        return UNKNOWN;
+    }
+
+    private int planDecideForUpOrDown(boolean canGoUp, boolean canGoDown) {
+        // if we are in the pending mode, we prefer to go ALWAYS-UP
+        if (canGoUp && (myHead.y < yMax / 2 || !canGoDown)) {
+            state = UP;
+            return UP;
+        } else if (canGoDown){
+            state = DOWN;
+            return DOWN;
         }
         return UNKNOWN;
     }

@@ -157,12 +157,16 @@ public class SnakeTest {
         gameId = "45d542e2-e4cd-4136-891a-78f4b4d31241";
         Snake.debugTurn = 59;
 
+        // DEBUGGING AVAILABLE SPACE v2.0
         gameId = "45699a6b-6bd8-4363-ab3e-d7e776a2fadc";
-        Snake.debugTurn = 98;
+        Snake.debugTurn = 8; // 17
+
+        gameId = "53f0f36e-1fe8-4db3-bc8e-ff14359bb3a0";
+        Snake.debugTurn = 112;
 
         //gameMode = "wrapped";
         //gameMode = "royale";
-        //gameMode = "solo";
+        gameMode = "solo";
 
         int Y = 11;
         int X = 11;
