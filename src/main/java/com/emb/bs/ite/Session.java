@@ -868,13 +868,18 @@ if(turn >= Snake.debugTurn){
 
     private boolean XwillCreateLoop(int move, Point aPos, int[][] finalMap, int count) {
         Point newPos = getNewPointForDirection(aPos, move);
-        Map<Integer, ArrayList<Point>> data = XgroupSpaces(newPos);
-        if(data.containsKey(Integer.MAX_VALUE)){
-            ArrayList<Point> pointsFromWhichTheTailCanBeCaught = data.get(Integer.MAX_VALUE);
+
+        Map<Integer, ArrayList<Point>> data01 = XgroupSpaces(newPos);
+        //ignoreOtherTargets = true;
+        //Map<Integer, ArrayList<Point>> data02 = XgroupSpaces(newPos);
+        //ignoreOtherTargets = false;
+
+        if(data01.containsKey(Integer.MAX_VALUE)){
+            ArrayList<Point> pointsFromWhichTheTailCanBeCaught = data01.get(Integer.MAX_VALUE);
         }
 
         HashMap<Point, Integer> space = new HashMap<>();
-        for(ArrayList<Point> aList: data.values()){
+        for(ArrayList<Point> aList: data01.values()){
             int len = aList.size();
             for(Point aPoint: aList){
                 space.put(aPoint, len);
@@ -883,7 +888,7 @@ if(turn >= Snake.debugTurn){
 
         if(move == LEFT){
             if(Snake.debugTurn == turn){
-                LOG.info(""+data);
+                LOG.info("HALT");//+data01+" "+data02);
             }
         }
 
@@ -912,8 +917,6 @@ if(turn >= Snake.debugTurn){
         finalMap[aPos.y][aPos.x] = 1;
 
         //the available fields map...
-        //finalMap[newPos.y][newPos.x] = 1;
-
         int num = 1;
         int[][] freeMap = new int[Y][X];
         for (int y = yMin; y <= yMax; y++) {
@@ -926,34 +929,36 @@ if(turn >= Snake.debugTurn){
             }
         }
         // the map where each field that is not occupied received a number...
-        // logFreeMap2(freeMap, newPos, 0);
+        //logFreeMap2(freeMap, aPos, 0);
 
+        int maxLoops = Math.max(X,Y) / 2 + 1;
+        for(int i=0; i < maxLoops; i++) {
+            for (int y = 0; y < Y; y++) {
+                for (int x = 0; x < X; x++) {
+                    int count = 0;
+                    if (Xup(freeMap, y, x)) {
+                        count++;
+                    }
+                    if (Xdown(freeMap, y, x)) {
+                        count++;
+                    }
+                    if (Xleft(freeMap, y, x)) {
+                        count++;
+                    }
+                    if (Xright(freeMap, y, x)) {
+                        count++;
+                    }
 
-        for (int y = 0; y < Y; y++) {
-            for (int x = 0; x < X; x++) {
-                int count = 0;
-                if(Xup(freeMap, y, x)){
-                    count++;
-                }
-                if(Xdown(freeMap, y, x)){
-                    count++;
-                }
-                if(Xleft(freeMap, y, x)){
-                    count++;
-                }
-                if(Xright(freeMap, y, x)){
-                    count++;
-                }
-
-                if(count < 2){
-                    freeMap[y][x] = 0;
+                    if (count < 2) {
+                        freeMap[y][x] = 0;
+                    }
                 }
             }
         }
         // removed from the map the fields that have only a single connection [aka DEAD ends]
-        // logFreeMap2(freeMap, newPos, 0);
+        //logFreeMap2(freeMap, aPos, 0);
 
-        for (int i=0; i < (X+Y)/2; i++){
+        for (int i=0; i < maxLoops; i++){
             for (int y = 0; y < Y; y++) {
                 for (int x = 0; x < X; x++) {
                     Xwash(freeMap, y, x);
@@ -966,8 +971,6 @@ if(turn >= Snake.debugTurn){
             }
         }
         // populate the MAX field value to all areas...
-        // logFreeMap2(freeMap, newPos, 0);
-
         logFreeMap2(freeMap, aPos, 0);
 
         // finally, grouping/counting the size of the "free" space fields
@@ -990,10 +993,10 @@ if(turn >= Snake.debugTurn){
         return y + 1 < Y && map[y + 1][x] > 0;
     }
     private boolean Xdown(int[][] map, int y, int x){
-        return y - 1 > 0 && map[y - 1][x] > 0;
+        return y - 1 >= 0 && map[y - 1][x] > 0;
     }
     private boolean Xleft(int[][] map, int y, int x){
-        return x - 1 > 0 && map[y][x - 1] > 0;
+        return x - 1 >= 0 && map[y][x - 1] > 0;
     }
     private boolean Xright(int[][] map, int y, int x){
         return x + 1 < X && map[y][x + 1] > 0;
@@ -1619,25 +1622,32 @@ if(turn >= Snake.debugTurn){
             restoreState(startState);
             restoreBoardBounds(currentActiveBounds);
 
+            LOG.info("Checking... "+getMoveIntAsString(possibleDirection));
+if(turn >= Snake.debugTurn){
+    LOG.debug("HALT");
+}
             if(possibleDirection == mFoodPrimaryDirection || possibleDirection == mFoodSecondaryDirection){
                 // So depending on the situation we want to take more risks in order to
                 // get FOOD - but this Extra risk should be ONLY applied when making a
                 // food move!
                 if(foodFetchConditionGoHazard){
+                    LOG.info("FOOD caused ENTER-Hazard TRUE");
                     escapeFromHazard = false;
                     enterHazardZone = true;
                 }
                 if(foodFetchConditionGoBorder){
+                    LOG.info("FOOD caused ENTER-Border TRUE");
                     escapeFromBorder = false;
                     enterBorderZone = true;
                     setFullBoardBounds();
                 }
             }
 
-            // ok checking the next direction...
 if(turn >= Snake.debugTurn){
     LOG.debug("HALT");
 }
+
+            // ok checking the next direction...
             int moveResult = moveDirection(possibleDirection, null);
             if(moveResult != UNKNOWN && moveResult != DOOMED) {
                 MoveWithState move = new MoveWithState(moveResult, this);

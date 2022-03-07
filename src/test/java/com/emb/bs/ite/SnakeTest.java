@@ -159,10 +159,11 @@ public class SnakeTest {
 
         // DEBUGGING AVAILABLE SPACE v2.0
         gameId = "45699a6b-6bd8-4363-ab3e-d7e776a2fadc";
-        Snake.debugTurn = 8; // 17
+        Snake.debugTurn = 10; //8; // 17
 
-        gameId = "53f0f36e-1fe8-4db3-bc8e-ff14359bb3a0";
-        Snake.debugTurn = 112;
+        // -> root of the new FREE-Space Calc: in TURN 112 the LEFT option should result in "no border"...
+        //gameId = "53f0f36e-1fe8-4db3-bc8e-ff14359bb3a0";
+        //Snake.debugTurn = 112;
 
         //gameMode = "wrapped";
         //gameMode = "royale";
