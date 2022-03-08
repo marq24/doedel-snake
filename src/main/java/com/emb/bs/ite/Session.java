@@ -461,7 +461,7 @@ public class Session {
         }
     }
 
-    private List<Integer> checkSpecialMoves() {
+    private void checkSpecialMoves() {
         /*List<Integer> killMoves = checkKillMoves();
         if(killMoves != null && killMoves.size() >0){
             LOG.info("FOUND possible KILLs :" +killMoves);
@@ -476,10 +476,9 @@ public class Session {
             // need to reset all food parameters...
             resetFoodStatus();
         }
-        return null;//killMoves;
     }
 
-    private List<Integer> checkKillMoves(){
+    /*private List<Integer> checkKillMoves(){
         // verify if this IF condition makes sense here - we might want to decide later, IF we are going to
         // make the killMove...
         ArrayList<Integer> checkedKills = new ArrayList<>();
@@ -503,7 +502,7 @@ public class Session {
             // TODO: check for indexOutOfBounds (p.y/x can be -1 or > Y/X) - right now catching the exception
             // cause of laziness
         }
-    }
+    }*/
 
     private void checkFoodMoves() {
         Point closestFood = null;
@@ -861,6 +860,18 @@ if(turn >= Snake.debugTurn){
                                 finalMap[y][x] = 1;
                             } else if (!ignoreOtherTargets && snakeNextMovePossibleLocations[y][x] > 0) {
                                 finalMap[y][x] = 1;
+
+                                /*int otherSnakeLen = snakeNextMovePossibleLocations[y][x];
+                                // finalMap is ONLY null, when this is called directly with the "myHead" pos
+                                // and the "move" direction - so the 'newPos' is actually the next location
+                                // of our snake after this "planed" move... if this location is actually the
+                                // possibleTargetLocation of another sneak, we can/should check, if we are
+                                // stringer => if we are stronger we can consider this field as FREE...
+                                if(!(newPos.y == y && newPos.x == x && myLen > otherSnakeLen)){
+                                    finalMap[y][x] = 1;
+                                }*/
+                                // BUT all this is OBSOLETE, since we will anyhow mark the next position of
+                                // our sneak as "visited" in the finalMap...
                             }
                         }
                     }
@@ -933,8 +944,6 @@ if(turn >= Snake.debugTurn){
                 } else if (snakeBodies[y][x] > 0) {
                     finalMap[y][x] = 1;
                 } else if (!ignoreOtherTargets && snakeNextMovePossibleLocations[y][x] > 0) {
-                    // TODO here - check, if this is a closeby position and if the other sneak
-                    // is smaller, we can considder this as save place!
                     finalMap[y][x] = 1;
                 }
             }
@@ -1622,7 +1631,7 @@ if(turn >= Snake.debugTurn){
         // food...
 
         // TODO: WARN - WE NEED TO ENABLE THIS AGAIN!!!
-        List<Integer> killMoves = /*null;/*/checkSpecialMoves();
+        checkSpecialMoves();
 
         /*SortedSet<Integer> options = new TreeSet<Integer>();
         // make sure that we check initially our preferred direction...
@@ -1703,11 +1712,11 @@ if(Snake.debugTurn == turn){
         if(possibleMoves.size() == 1){
             return possibleMoves.get(0);
         }else{
-            return getBestMove(possibleMoves, killMoves);
+            return getBestMove(possibleMoves);
         }
     }
 
-    private MoveWithState getBestMove(ArrayList<MoveWithState> possibleMoves, List<Integer> killMoves) {
+    private MoveWithState getBestMove(ArrayList<MoveWithState> possibleMoves) {
         // ok we have plenty of alternative moves...
         // we should check, WHICH of them is the most promising...
 
@@ -2094,8 +2103,8 @@ if(Snake.debugTurn == turn){
             ArrayList<MoveWithState> movesWithoutGoToBorder = new ArrayList<>(bestList);
             for(MoveWithState aMove: bestList){
                 if(aMove.state.sEnterBorderZone){
-                    // keeping the kill moves!!! [even if they are goToBorder=true]
-                    if(killMoves == null || !killMoves.contains(aMove.move)){
+                    Point resPoint = aMove.getResPosForMyHead(this);
+                    if(isPosLocatedAtBorder(resPoint)) {
                         movesWithoutGoToBorder.remove(aMove);
                     }
                 }
@@ -2135,7 +2144,7 @@ if(Snake.debugTurn == turn){
 
         // ok if all the remaining moves have the same (low) "risk", we can check,
         // if there are possible "killMoves"...
-        if(killMoves != null){
+        /*if(killMoves != null){
             for(Integer aKillMove: killMoves){
                 MoveWithState finalKillMove = intMovesToMoveKeysMap.get(aKillMove);
                 if(bestList.contains(finalKillMove)){
@@ -2144,7 +2153,7 @@ if(Snake.debugTurn == turn){
                     return bestList.get(idxOfKillMove);
                 }
             }
-        }
+        }*/
 
         // checking if there is a GETAWAY from HAZARD or BORDER
         if(aMoveHasEscapeFromHazard) {
