@@ -31,7 +31,7 @@ public class Snake {
     static final String L = "left";
     static final String R = "right";
 
-    static boolean logBoard = true;
+    static boolean logBoard = false;
     static int debugTurn = -1;
     /**
      * Main entry point.
