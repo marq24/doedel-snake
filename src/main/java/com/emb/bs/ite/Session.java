@@ -467,7 +467,7 @@ public class Session {
             LOG.info("FOUND possible KILLs :" +killMoves);
         }*/
 
-        if (myHealth < 41 || (myLen - getAdvantage() <= maxOtherSnakeLen)) {
+        if (myHealth < 41 || (!mSoloMode && (myLen - getAdvantage() <= maxOtherSnakeLen))) {
             LOG.info("Check for FOOD! health:" + myHealth + " len:" + myLen +"(-"+getAdvantage()+")"+ "<=" + maxOtherSnakeLen);
             // ok we need to start to fetch FOOD!
             // we should move into the direction of the next FOOD! (setting our preferred direction)
@@ -2212,19 +2212,14 @@ if(Snake.debugTurn == turn){
 }
 
         // checking the default movement options from our initial implemented movement plan...
-        if(true){//mSoloMode) {
-            // as fallback take the first entry from our list...
-            MoveWithState finalPossibleFallbackMove = bestList.get(0);
-
-            int moveFromPlan = tryFollowMovePlan(bestList);
-            if (moveFromPlan != UNKNOWN) {
-                MoveWithState routeMove = intMovesToMoveKeysMap.get(moveFromPlan);
-                return bestList.get(bestList.indexOf(routeMove));
-            } else {
-                return finalPossibleFallbackMove;
-            }
-        }else{
-            // ok still options - then we prefer to move to the center?
+        // as fallback take the first entry from our list...
+        int moveFromPlan = tryFollowMovePlanGoCenter(bestList);
+        if (moveFromPlan != UNKNOWN) {
+            MoveWithState routeMove = intMovesToMoveKeysMap.get(moveFromPlan);
+            return bestList.get(bestList.indexOf(routeMove));
+        } else {
+            // ok still options
+            LOG.info("select RANDOM - RIIIIISIKO");
             return bestList.get((int) (bestList.size() * Math.random()));
         }
     }
@@ -2434,6 +2429,29 @@ if(turn >= Snake.debugTurn){
                 }else{
                     return planDecideForUpOrDown(canGoUp, canGoDown);
                 }
+        }
+        return UNKNOWN;
+    }
+
+    private int tryFollowMovePlanGoCenter(ArrayList<MoveWithState> finalMoveOptions) {
+        LOG.info("head to center (cause no other priority could be found)");
+        int targetX = X/2;
+        int targetY = Y/2;
+        boolean canGoUp     = finalMoveOptions.contains(intMovesToMoveKeysMap.get(UP));
+        boolean canGoRight  = finalMoveOptions.contains(intMovesToMoveKeysMap.get(RIGHT));
+        boolean canGoDown   = finalMoveOptions.contains(intMovesToMoveKeysMap.get(DOWN));
+        boolean canGoLeft   = finalMoveOptions.contains(intMovesToMoveKeysMap.get(LEFT));
+        if(myHead.y < targetY && canGoUp){
+            return UP;
+        }
+        if(myHead.y > targetY && canGoDown){
+            return DOWN;
+        }
+        if(myHead.x < targetX && canGoRight){
+            return RIGHT;
+        }
+        if(myHead.x > targetX && canGoLeft){
+            return LEFT;
         }
         return UNKNOWN;
     }
