@@ -164,10 +164,15 @@ public class SnakeTest {
         // -> root of the new FREE-Space Calc: in TURN 112 the LEFT option should result in "no border"...
         //gameId = "53f0f36e-1fe8-4db3-bc8e-ff14359bb3a0";
         //Snake.debugTurn = 112;
+        //gameMode = "solo";
+
+        // Volker killed me -> cause I move right (cause of false move to border = true)
+        //gameId = "12f69f9e-f1c8-4e8b-9d22-ce2429203048";
+        //Snake.debugTurn = 231;
 
         //gameMode = "wrapped";
         //gameMode = "royale";
-        gameMode = "solo";
+        //gameMode = "solo";
 
         int Y = 11;
         int X = 11;
