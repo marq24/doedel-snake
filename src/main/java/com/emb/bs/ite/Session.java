@@ -1919,7 +1919,6 @@ if(Snake.debugTurn == turn){
 if(turn >= Snake.debugTurn){
     LOG.debug("HALT" + bestList);
 }
-
         // 2a - checking if we can catch our own tail?!
         // in this case we can ignore the approach of other snake heads
         // but only if this will not move into hazard
@@ -1995,20 +1994,20 @@ if(Snake.debugTurn == turn){
 }
         // checking if one of the moves will be a possible move target for TWO snakes! (if this is the case, then
         // this will typically end in a corner!
-        ArrayList<MoveWithState> noneDoubleTragets = new ArrayList<>(bestList);
+        ArrayList<MoveWithState> noneDoubleTargets = new ArrayList<>(bestList);
         boolean modifiedList = false;
         for(MoveWithState aMove: bestList){
             Point resPoint = aMove.getResPosForMyHead(this);
             if(snakeNextMovePossibleLocationList.containsKey(resPoint)){
                 ArrayList<Integer> list = snakeNextMovePossibleLocationList.get(resPoint);
                 if(list.size() > 1){
-                    noneDoubleTragets.remove(aMove);
+                    noneDoubleTargets.remove(aMove);
                     modifiedList = true;
                 }
             }
         }
-        if(modifiedList && noneDoubleTragets.size() > 0){
-            bestList = noneDoubleTragets;
+        if(modifiedList && noneDoubleTargets.size() > 0){
+            bestList = noneDoubleTargets;
             if(bestList.size() == 1){
                 MoveWithState aMove = bestList.get(0);
                 if(!mHazardPresent || !aMove.state.sEnterHazardZone){
@@ -2226,9 +2225,29 @@ if(Snake.debugTurn == turn){
 
     private MoveWithState checkForCatchOwnTail(ArrayList<MoveWithState> moveList) {
         if(lastTurnTail != null){
+            // checking if all moves will end @ border...
+            ArrayList<MoveWithState> movesWithoutGoToBorder = new ArrayList<>(moveList);
+            for(MoveWithState aMove: moveList){
+                if(aMove.state.sEnterBorderZone){
+                    Point resPoint = aMove.getResPosForMyHead(this);
+                    if(isPosLocatedAtBorder(resPoint)) {
+                        movesWithoutGoToBorder.remove(aMove);
+                    }
+                }
+            }
+            if(movesWithoutGoToBorder.size() > 0) {
+                moveList = movesWithoutGoToBorder;
+                // ok - only one option left... let's return that!
+            } else{
+                // ok all of the available moves will end at the border.. so
+                // we can accept the possible tail-catch
+            }
+
+
+
             for (MoveWithState aMove : moveList) {
                 Point rPos = aMove.getResPosForMyHead(this);
-                if((!mHazardPresent || hazardZone[rPos.y][rPos.x]==0) && !isPosLocatedAtBorder(rPos)){
+                if(!mHazardPresent || hazardZone[rPos.y][rPos.x]==0){
                     // cool - just lat pick that one!
                     if (rPos.equals(lastTurnTail)) {
                         return aMove;
@@ -2239,7 +2258,7 @@ if(Snake.debugTurn == turn){
             // second run...
             for (MoveWithState aMove : moveList) {
                 Point rPos = aMove.getResPosForMyHead(this);
-                if((!mHazardPresent || hazardZone[rPos.y][rPos.x]==0) && !isPosLocatedAtBorder(rPos)){
+                if(!mHazardPresent || hazardZone[rPos.y][rPos.x]==0){
                     // cool - just lat pick that one!
                     if(getPointDistance(myTail, rPos) == 1 && !foodPlaces.contains(rPos)){
                         return aMove;
