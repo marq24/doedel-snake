@@ -547,7 +547,7 @@ public class Session {
         TreeMap<Integer, ArrayList<Point>> foodTargetsByDistance = new TreeMap<>();
         for (Point f : availableFoods) {
             int dist = getPointDistance(f, myHead);
-            if(!isLocatedAtBorder(f) || dist < 3 || (dist < 4 && myHealth < 65) || myHealth < 51) {
+            if(!isFoodLocatedAtBorder(f) || dist < 3 || (dist < 4 && myHealth < 65) || myHealth < 51) {
                 boolean addFoodAsTarget = true;
                 for (Point h : snakeHeads) {
                     int otherSnakesDist = getPointDistance(f, h);
@@ -655,7 +655,7 @@ public class Session {
                 // 4) when we are one smaller than the largest other
                 // 5) when the food we want to fetch is at BORDER
                 //if(goFullBorder || turn < 30 || myLen < 15 || myLen - 1 < maxOtherSnakeLen || isLocatedAtBorder(closestFood)){
-                if(goFullBorder || turn < 30 || isLocatedAtBorder(closestFood)){
+                if(goFullBorder || turn < 30 || isFoodLocatedAtBorder(closestFood)){
                     foodFetchConditionGoBorder = true;
                 }
             }
@@ -753,7 +753,7 @@ public class Session {
         }
     }
 
-    private boolean isLocatedAtBorder(Point p) {
+    private boolean isFoodLocatedAtBorder(Point p) {
         if(turn < 21 || mWrappedMode){
             return  false;//hazardNearbyPlaces.contains(p);
         }else {
@@ -770,6 +770,26 @@ public class Session {
                         || p.x <= xMin
                         || p.x >= xMax
                         //|| hazardNearbyPlaces.contains(p)
+                        ;
+            }
+        }
+    }
+
+    private boolean isPosLocatedAtBorder(Point p) {
+        if(turn < 21 || mWrappedMode){
+            return  false;
+        }else {
+            if(turn < 50){
+                return  p.y == 0
+                        || p.y == Y - 1
+                        || p.x == 0
+                        || p.x == X - 1
+                        ;
+            }else {
+                return  p.y <= yMin
+                        || p.y >= yMax
+                        || p.x <= xMin
+                        || p.x >= xMax
                         ;
             }
         }
@@ -815,6 +835,9 @@ public class Session {
         // OK we have to check, if with the "planed" next move we will create a closed loop structure (either
         // with ourselves, with the border or with any enemy...
         // when we reach our own tail, then we will fit into the hole for sure!
+if(turn >= Snake.debugTurn){
+    LOG.debug("HALT");
+}
         try {
             count++;
             if(count <= MAXDEEP) {
@@ -836,7 +859,7 @@ public class Session {
                                 finalMap[y][x] = 1;
                             } else if (snakeBodies[y][x] > 0) {
                                 finalMap[y][x] = 1;
-                            } else if (!ignoreOtherTargets && snakeNextMovePossibleLocations[y][x] > 0) {
+                            } else if (!ignoreOtherTargets && snakeNextMovePossibleLocations[y][x] >= myLen) {
                                 finalMap[y][x] = 1;
                             }
                         }
@@ -909,7 +932,7 @@ if(turn >= Snake.debugTurn){
                     finalMap[y][x] = 1;
                 } else if (snakeBodies[y][x] > 0) {
                     finalMap[y][x] = 1;
-                } else if (!ignoreOtherTargets && snakeNextMovePossibleLocations[y][x] > 0) {
+                } else if (!ignoreOtherTargets && snakeNextMovePossibleLocations[y][x] >= myLen) {
                     finalMap[y][x] = 1;
                 }
             }
@@ -1882,6 +1905,10 @@ if(Snake.debugTurn == turn){
             return bestList.get(0);
         }
 
+if(turn >= Snake.debugTurn){
+    LOG.debug("HALT" + bestList);
+}
+
         // 2a - checking if we can catch our own tail?!
         // in this case we can ignore the approach of other snake heads
         // but only if this will not move into hazard
@@ -2194,10 +2221,10 @@ if(Snake.debugTurn == turn){
     private MoveWithState checkForCatchOwnTail(ArrayList<MoveWithState> moveList) {
         if(lastTurnTail != null){
             for (MoveWithState aMove : moveList) {
-                if((!mHazardPresent || !aMove.state.sEnterHazardZone) && !aMove.state.sEnterBorderZone){
-                    Point resultingPos = aMove.getResPosForMyHead(this);
+                Point rPos = aMove.getResPosForMyHead(this);
+                if((!mHazardPresent || hazardZone[rPos.y][rPos.x]==0) && !isPosLocatedAtBorder(rPos)){
                     // cool - just lat pick that one!
-                    if (resultingPos.equals(lastTurnTail)) {
+                    if (rPos.equals(lastTurnTail)) {
                         return aMove;
                     }
                 }
@@ -2205,10 +2232,10 @@ if(Snake.debugTurn == turn){
 
             // second run...
             for (MoveWithState aMove : moveList) {
-                if((!mHazardPresent || !aMove.state.sEnterHazardZone) && !aMove.state.sEnterBorderZone){
-                    Point resultingPos = aMove.getResPosForMyHead(this);
+                Point rPos = aMove.getResPosForMyHead(this);
+                if((!mHazardPresent || hazardZone[rPos.y][rPos.x]==0) && !isPosLocatedAtBorder(rPos)){
                     // cool - just lat pick that one!
-                    if(getPointDistance(myTail, resultingPos) == 1 && !foodPlaces.contains(resultingPos)){
+                    if(getPointDistance(myTail, rPos) == 1 && !foodPlaces.contains(rPos)){
                         return aMove;
                     }
                 }
