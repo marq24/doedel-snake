@@ -859,7 +859,7 @@ if(turn >= Snake.debugTurn){
                                 finalMap[y][x] = 1;
                             } else if (snakeBodies[y][x] > 0) {
                                 finalMap[y][x] = 1;
-                            } else if (!ignoreOtherTargets && snakeNextMovePossibleLocations[y][x] >= myLen) {
+                            } else if (!ignoreOtherTargets && snakeNextMovePossibleLocations[y][x] > 0) {
                                 finalMap[y][x] = 1;
                             }
                         }
@@ -932,7 +932,9 @@ if(turn >= Snake.debugTurn){
                     finalMap[y][x] = 1;
                 } else if (snakeBodies[y][x] > 0) {
                     finalMap[y][x] = 1;
-                } else if (!ignoreOtherTargets && snakeNextMovePossibleLocations[y][x] >= myLen) {
+                } else if (!ignoreOtherTargets && snakeNextMovePossibleLocations[y][x] > 0) {
+                    // TODO here - check, if this is a closeby position and if the other sneak
+                    // is smaller, we can considder this as save place!
                     finalMap[y][x] = 1;
                 }
             }
