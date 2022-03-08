@@ -2226,24 +2226,24 @@ if(Snake.debugTurn == turn){
     private MoveWithState checkForCatchOwnTail(ArrayList<MoveWithState> moveList) {
         if(lastTurnTail != null){
             // checking if all moves will end @ border...
-            ArrayList<MoveWithState> movesWithoutGoToBorder = new ArrayList<>(moveList);
-            for(MoveWithState aMove: moveList){
-                if(aMove.state.sEnterBorderZone){
-                    Point resPoint = aMove.getResPosForMyHead(this);
-                    if(isPosLocatedAtBorder(resPoint)) {
-                        movesWithoutGoToBorder.remove(aMove);
+            if(!mSoloMode) {
+                ArrayList<MoveWithState> movesWithoutGoToBorder = new ArrayList<>(moveList);
+                for (MoveWithState aMove : moveList) {
+                    if (aMove.state.sEnterBorderZone) {
+                        Point resPoint = aMove.getResPosForMyHead(this);
+                        if (isPosLocatedAtBorder(resPoint)) {
+                            movesWithoutGoToBorder.remove(aMove);
+                        }
                     }
                 }
+                if (movesWithoutGoToBorder.size() > 0) {
+                    moveList = movesWithoutGoToBorder;
+                    // ok - only one option left... let's return that!
+                } else {
+                    // ok all of the available moves will end at the border.. so
+                    // we can accept the possible tail-catch
+                }
             }
-            if(movesWithoutGoToBorder.size() > 0) {
-                moveList = movesWithoutGoToBorder;
-                // ok - only one option left... let's return that!
-            } else{
-                // ok all of the available moves will end at the border.. so
-                // we can accept the possible tail-catch
-            }
-
-
 
             for (MoveWithState aMove : moveList) {
                 Point rPos = aMove.getResPosForMyHead(this);
