@@ -2153,9 +2153,26 @@ if(Snake.debugTurn == turn){
                 }
                 list.add(aMove);
             }
-            bestList = groupByHazardLevel.firstEntry().getValue();
+            Map.Entry<Integer, ArrayList<MoveWithState>> bestEntry = groupByHazardLevel.firstEntry();
+            bestList = bestEntry.getValue();
             if(bestList.size() == 1){
-                return bestList.get(0);
+                if(bestEntry.getKey() == 1) {
+                    // check if we really can get out here?!
+                    MoveWithState aMove = bestList.get(0);
+                    Point resPoint = aMove.getResPosForMyHead(this);
+                    if(checkIfAnyMoveFromPointWillGetUsOutOfHazard(resPoint)){
+                        // cool there is really a way out!
+                        return bestList.get(0);
+                    } else {
+                        groupByHazardLevel.remove(bestEntry.getKey());
+                        bestEntry = groupByHazardLevel.firstEntry();
+                        if(bestEntry != null){
+                            bestList = bestEntry.getValue();
+                        }
+                    }
+                }else {
+                    return bestList.get(0);
+                }
             }
         }
 
@@ -2188,6 +2205,7 @@ if(Snake.debugTurn == turn){
             }
         }
 
+        
         // cool to 'still' have so many options...
         if (bestList.size() == 2) {
             int move1 = bestList.get(0).move;
@@ -2258,6 +2276,24 @@ if(Snake.debugTurn == turn){
                 return bestList.get((int) (bestList.size() * Math.random()));
             }
         }
+    }
+
+    private boolean checkIfAnyMoveFromPointWillGetUsOutOfHazard(Point p) {
+        boolean ret = isPossibleMoveOutOfHazard(getNewPointForDirection(p, UP));
+        if(!ret){
+            ret = isPossibleMoveOutOfHazard(getNewPointForDirection(p, DOWN));
+        }
+        if(!ret){
+            ret = isPossibleMoveOutOfHazard(getNewPointForDirection(p, LEFT));
+        }
+        if(!ret){
+            ret = isPossibleMoveOutOfHazard(getNewPointForDirection(p, RIGHT));
+        }
+        return ret;
+    }
+
+    private boolean isPossibleMoveOutOfHazard(Point p){
+        return hazardZone[p.y][p.x] == 0 && myBody[p.y][p.x] == 0 && snakeBodies[p.y][p.x] == 0;
     }
 
     private MoveWithState checkForCatchOwnTail(ArrayList<MoveWithState> moveList) {
