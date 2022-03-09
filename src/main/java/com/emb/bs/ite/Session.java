@@ -2293,7 +2293,11 @@ if(Snake.debugTurn == turn){
     }
 
     private boolean isPossibleMoveOutOfHazard(Point p){
-        return hazardZone[p.y][p.x] == 0 && myBody[p.y][p.x] == 0 && snakeBodies[p.y][p.x] == 0;
+        try {
+            return hazardZone[p.y][p.x] == 0 && myBody[p.y][p.x] == 0 && snakeBodies[p.y][p.x] == 0;
+        }catch(IndexOutOfBoundsException iob){
+            return false;
+        }
     }
 
     private MoveWithState checkForCatchOwnTail(ArrayList<MoveWithState> moveList) {
