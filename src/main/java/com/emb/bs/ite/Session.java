@@ -773,7 +773,7 @@ if(turn >= Snake.debugTurn){
         if(turn < 21 || mWrappedMode){
             return  false;//hazardNearbyPlaces.contains(p);
         }else {
-            if(turn < 50 || myLen < 15 || myLen - 1 < maxOtherSnakeLen){
+            if(turn < 50 || myLen < 15 || (!mHazardPresent && myLen - 1 < maxOtherSnakeLen) || myLen < maxOtherSnakeLen - 5){
                 return  p.y == 0
                         || p.y == Y - 1
                         || p.x == 0

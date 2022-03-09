@@ -178,9 +178,9 @@ public class SnakeTest {
         //Y = 7;
         //X = 7;
 
-        gameId= "527b2be0-732b-40df-8e65-97925b08d164";
-        gameMode = "wrapped";
-        Snake.debugTurn = 86;
+        gameId= "eb23ae58-2a08-4b34-b364-2d20f79af816";
+        //gameMode = "wrapped";
+        Snake.debugTurn = 156;
 
         //gameMode = "wrapped";
         //gameMode = "royale";
