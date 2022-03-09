@@ -2194,32 +2194,45 @@ if(Snake.debugTurn == turn){
             int move2 = bestList.get(1).move;
             if(isOpposite(move1, move2)) {
                 // OK - UP/DOWN or LEFT/RIGHT
-                int[][] finalMap = new int[Y][X];
-                finalMap[myHead.y][myHead.x] = 1;
-                for (int y = 0; y < X; y++) {
-                    for (int x = 0; x < X; x++) {
-                        if (myBody[y][x] > 0) {
-                            finalMap[y][x] = 1;
-                        } else if (snakeBodies[y][x] > 0) {
-                            finalMap[y][x] = 1;
-                        } else if (snakeNextMovePossibleLocations[y][x] > 0) {
-                            finalMap[y][x] = 1;
+                int op1, op2;
+                if(mHazardPresent && hazardZone[myHead.y][myHead.x] > 0){
+                    // ok we are currently IN HAZARD... which direction we should try to
+                    // go OUT OF HAZARD?!s
+
+                    op1 = countMovesTillOutOfHazard(myHead, move1, 0) -1;
+                    op2 = countMovesTillOutOfHazard(myHead, move2, 0) -1;
+                    // LOWER IS BETTER!!!
+                    if(op1 > op2){
+                        return bestList.get(1);
+                    }else if(op2 > op1){
+                        return bestList.get(0);
+                    }
+                }else{
+                    int[][] finalMap = new int[Y][X];
+                    finalMap[myHead.y][myHead.x] = 1;
+                    for (int y = 0; y < X; y++) {
+                        for (int x = 0; x < X; x++) {
+                            if (myBody[y][x] > 0) {
+                                finalMap[y][x] = 1;
+                            } else if (snakeBodies[y][x] > 0) {
+                                finalMap[y][x] = 1;
+                            } else if (snakeNextMovePossibleLocations[y][x] > 0) {
+                                finalMap[y][x] = 1;
+                            }
                         }
                     }
-                }
+                    boolean toRestore = enterNoGoZone;
+                    enterNoGoZone = true;
+                    op1 = countMoves(finalMap, myHead, move1, 0) - 1;
+                    op2 = countMoves(finalMap, myHead, move2, 0) - 1;
+                    enterNoGoZone = toRestore;
 
-                //logMap(finalMap, 0);
-
-                boolean toRestore = enterNoGoZone;
-                enterNoGoZone = true;
-                int op1 = countMoves(finalMap, myHead, move1, 0) - 1;
-                int op2 = countMoves(finalMap, myHead, move2, 0) - 1;
-                enterNoGoZone = toRestore;
-
-                if(op1>op2){
-                    return bestList.get(0);
-                }else if(op2>op1){
-                    return bestList.get(1);
+                    // HIGHER IS BETTER!!!
+                    if(op1>op2){
+                        return bestList.get(0);
+                    }else if(op2>op1){
+                        return bestList.get(1);
+                    }
                 }
             }
         }
@@ -2230,14 +2243,20 @@ if(Snake.debugTurn == turn){
 
         // checking the default movement options from our initial implemented movement plan...
         // as fallback take the first entry from our list...
-        int moveFromPlan = tryFollowMovePlanGoCenter(bestList);
-        if (moveFromPlan != UNKNOWN) {
-            MoveWithState routeMove = intMovesToMoveKeysMap.get(moveFromPlan);
-            return bestList.get(bestList.indexOf(routeMove));
-        } else {
-            // ok still options
+        if(mWrappedMode){
+            // in wrapped mode there is NO CENTER!
             LOG.info("select RANDOM - RIIIIISIKO");
             return bestList.get((int) (bestList.size() * Math.random()));
+        }else {
+            int moveFromPlan = tryFollowMovePlanGoCenter(bestList);
+            if (moveFromPlan != UNKNOWN) {
+                MoveWithState routeMove = intMovesToMoveKeysMap.get(moveFromPlan);
+                return bestList.get(bestList.indexOf(routeMove));
+            } else {
+                // ok still options
+                LOG.info("select RANDOM - RIIIIISIKO");
+                return bestList.get((int) (bestList.size() * Math.random()));
+            }
         }
     }
 
@@ -2289,6 +2308,29 @@ if(Snake.debugTurn == turn){
         }
         return null;
     }
+
+    private int countMovesTillOutOfHazard(Point aPos, int move, int count) {
+        Point nextPoint = getNewPointForDirection(aPos, move);
+        switch (move){
+            case UP:
+            case DOWN:
+                if(count > Y){
+                    return count;
+                }
+                break;
+            case LEFT:
+            case RIGHT:
+                if(count > X){
+                    return count;
+                }
+                break;
+        }
+        if (hazardZone[nextPoint.y][nextPoint.x] >0) {
+            count = countMovesTillOutOfHazard(nextPoint, move, count);
+        }
+        return ++count;
+    }
+
 
     private int countMoves(int[][] map, Point aPos, int move, int count) {
         Point nextPoint = getNewPointForDirection(aPos, move);
