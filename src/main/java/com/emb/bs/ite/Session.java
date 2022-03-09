@@ -523,7 +523,7 @@ if(turn >= Snake.debugTurn){
                 boolean addFoodAsTarget = true;
                 for (Point h : snakeHeads) {
                     int otherSnakesDist = getPointDistance(f, h);
-                    boolean otherIsStronger = snakeBodies[h.y][h.x] >= myLen;
+                    boolean otherIsStronger = snakeBodies[h.y][h.x] > myLen;
                     if(dist < ((X+Y)/2) && (dist > otherSnakesDist || (dist == otherSnakesDist && otherIsStronger))) {
                         addFoodAsTarget = false;
                         break;
