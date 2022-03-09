@@ -804,10 +804,10 @@ if(turn >= Snake.debugTurn){
                         || p.x == X - 1
                         ;
             }else {
-                return  p.y <= yMin
-                        || p.y >= yMax
-                        || p.x <= xMin
-                        || p.x >= xMax
+                return  p.y < yMin
+                        || p.y > yMax
+                        || p.x < xMin
+                        || p.x > xMax
                         ;
             }
         }
@@ -1873,12 +1873,14 @@ if(Snake.debugTurn == turn){
 
             if(secMove != null && priMove != null){
                 // Compare possible distance to other's (to compare which is less risky)
-
+                Point secPos = secMove.getResPosForMyHead(this);
+                Point priPos = priMove.getResPosForMyHead(this);
                 if( (secMove.state.sEscapeFromHazard && !priMove.state.sEscapeFromHazard)
                 ||  (secMove.state.sEscapeFromBorder && !priMove.state.sEscapeFromBorder)
                 ||  (!secMove.state.sEnterBorderZone && priMove.state.sEnterBorderZone)
                 ||  (!secMove.state.sEnterHazardZone && priMove.state.sEnterHazardZone)
-                ||  (!secMove.state.sEnterDangerZone && priMove.state.sEnterDangerZone)
+                ||  (!secMove.state.sEnterDangerZone && priMove.state.sEnterDangerZone
+                ||  (mHazardPresent && (hazardZone[secPos.y][secPos.x]==0 && hazardZone[priPos.y][priPos.x]!=0) ))
                 ){
                     // prefer secondary!
                     state = secMove.move;
