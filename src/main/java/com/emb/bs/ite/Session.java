@@ -699,7 +699,8 @@ if(turn >= Snake.debugTurn){
             return Math.abs(p1.x - p2.x) + Math.abs(p1.y - p2.y);
         }else{
             // in wrappedMode: if p1.x = 0 & p2.x = 11, then distance is 1
-            return Math.min(Math.abs(p1.x + X - p2.x), Math.abs(p1.x - p2.x)) + Math.min(Math.abs(p1.y + Y - p2.y), Math.abs(p1.y - p2.y));
+            ;
+            return Math.min(Math.abs(p1.x - (p2.x + X)), Math.min(Math.abs((p1.x + X) - p2.x), Math.abs(p1.x - p2.x))) + Math.min(Math.abs(p1.y - (p2.y + Y)), Math.min(Math.abs((p1.y + Y) - p2.y), Math.abs(p1.y - p2.y)));
         }
     }
 
