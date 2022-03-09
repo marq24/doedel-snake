@@ -515,7 +515,7 @@ public class Session {
         if (myHealth > 25) {
             // in wrappedMode there are no corners... and in the first 5 turns we might pick
             // up food that is around us...
-            if(turn > 20 && !mWrappedMode) {
+            if(turn > 20 && !mWrappedMode && !mSoloMode) {
                 // food in CORNERS is TOXIC (but if we are already IN the corner we will
                 // take it!
                 if (!(myHead.x == 0 && myHead.y <= 1) || (myHead.x <= 1 && myHead.y == 0)) {
@@ -1735,7 +1735,16 @@ if(Snake.debugTurn == turn){
 
         if(possibleMoves.size() == 1){
             return possibleMoves.get(0);
-        }else{
+        } else {
+            /*if(foodPlaces.size() == 1){
+                Point f = foodPlaces.get(0);
+                for(MoveWithState m : possibleMoves){
+                    Point p = m.getResPosForMyHead(this);
+                    if(p.equals(f)){
+                        return m;
+                    }
+                }
+            }*/
             return getBestMove(possibleMoves);
         }
     }
@@ -1949,21 +1958,22 @@ if(turn >= Snake.debugTurn){
         MoveWithState tailCatchMove = checkForCatchOwnTail(bestList);
         if (tailCatchMove != null) return tailCatchMove;
 
-        ArrayList<MoveWithState> bestListNoHzd = null;
-        // we should check the result list's (at least the first two ones), if there
-        // will be a MOVE to Border or Move to Hazard implied (when trying to get away
-        // from other sneak heads - and DECIDE for an alternative?!)
-        if(mHazardPresent){
-            bestListNoHzd = new ArrayList<>(bestList);
-            for(MoveWithState aBestMove: bestList){
-                if(aBestMove.state.sEnterHazardZone){
-                    bestListNoHzd.remove(aBestMove);
-                }
-            }
-        }
-
         if(!mConstrictorMode){
             // 2'nd checking the remaining moves which brings us closer to another snake's head...
+            /*
+            ArrayList<MoveWithState> bestListNoHzd = null;
+            // we should check the result list's (at least the first two ones), if there
+            // will be a MOVE to Border or Move to Hazard implied (when trying to get away
+            // from other sneak heads - and DECIDE for an alternative?!)
+            if(mHazardPresent){
+                bestListNoHzd = new ArrayList<>(bestList);
+                for(MoveWithState aBestMove: bestList){
+                    if(aBestMove.state.sEnterHazardZone){
+                        bestListNoHzd.remove(aBestMove);
+                    }
+                }
+            }
+
             ArrayList<PointWithBool> dangerousNextMovePositions = new ArrayList<>();
             for (Point otherSnakeResultingPos: snakeNextMovePossibleLocationList.keySet()) {
                 boolean canPickUpFood = foodPlaces.contains(otherSnakeResultingPos);
@@ -2000,7 +2010,9 @@ if(Snake.debugTurn == turn){
                         bestList = bestListNoHzd;
                     }
                 }
-            }
+            }*/
+
+
         }else{
            // DO NOTHING concerning DANGER-SNEAK Heads in mConstrictorMode
         }
@@ -2431,7 +2443,7 @@ if(Snake.debugTurn == turn){
                 ;
     }
 
-    private TreeMap<Integer, ArrayList<MoveWithState>> groupByOtherHeadDistance(ArrayList<MoveWithState> bestList, ArrayList<PointWithBool> dangerousNextMovePositions) {
+    /*private TreeMap<Integer, ArrayList<MoveWithState>> groupByOtherHeadDistance(ArrayList<MoveWithState> bestList, ArrayList<PointWithBool> dangerousNextMovePositions) {
 if(Snake.debugTurn == turn){
     LOG.debug("HALT" + bestList);
 }
@@ -2470,7 +2482,7 @@ if(Snake.debugTurn == turn){
     LOG.debug("HALT" + bestList);
 }
         return returnMap;
-    }
+    }*/
 
     private int XtryFollowMovePlan(ArrayList<MoveWithState> finalMoveOptions) {
         ArrayList<MoveWithState> noBorder = new ArrayList<>(finalMoveOptions);
