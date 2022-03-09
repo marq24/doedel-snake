@@ -602,13 +602,21 @@ public class Session {
             }
             foodActive = closestFood;
 
+if(turn >= Snake.debugTurn){
+    LOG.debug("HALT");
+}
+
             int yDelta = myHead.y - closestFood.y;
             int xDelta = myHead.x - closestFood.x;
             int preferredYDirection = -1;
             int preferredXDirection = -1;
             if (mFoodPrimaryDirection == -1 || yDelta == 0 || xDelta == 0) {
                 if(mWrappedMode && Math.abs(yDelta) > Y/2) {
-                    preferredYDirection = UP;
+                    if(myHead.y < Y/2){
+                        preferredYDirection = DOWN;
+                    }else {
+                        preferredYDirection = UP;
+                    }
                 } else if (yDelta > 0) {
                     preferredYDirection = DOWN;
                 } else if (yDelta < 0) {
@@ -616,7 +624,11 @@ public class Session {
                 }
 
                 if((mWrappedMode && Math.abs(xDelta) > X/2)){
-                    preferredXDirection = RIGHT;
+                    if(myHead.x < X/2) {
+                        preferredXDirection = LEFT;
+                    }else{
+                        preferredXDirection = RIGHT;
+                    }
                 }else if (xDelta > 0) {
                     preferredXDirection = LEFT;
                 } else if (xDelta < 0){
