@@ -2361,8 +2361,12 @@ if(Snake.debugTurn == turn){
                 }
                 break;
         }
-        if (hazardZone[nextPoint.y][nextPoint.x] >0) {
-            count = countMovesTillOutOfHazard(nextPoint, move, count);
+        try {
+            if (hazardZone[nextPoint.y][nextPoint.x] > 0) {
+                count = countMovesTillOutOfHazard(nextPoint, move, count);
+            }
+        }catch(IndexOutOfBoundsException iob){
+            return count;
         }
         return ++count;
     }
