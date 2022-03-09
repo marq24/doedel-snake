@@ -543,6 +543,10 @@ public class Session {
             }
         }
 
+if(turn >= Snake.debugTurn){
+    LOG.debug("HALT");
+}
+
         TreeMap<Integer, ArrayList<Point>> foodTargetsByDistance = new TreeMap<>();
         for (Point f : availableFoods) {
             int dist = getPointDistance(f, myHead);
@@ -776,10 +780,12 @@ if(turn >= Snake.debugTurn){
                         //|| hazardNearbyPlaces.contains(p)
                         ;
             }else {
-                return  p.y <= yMin
-                        || p.y >= yMax
-                        || p.x <= xMin
-                        || p.x >= xMax
+                // 2022/03/09 - replaced the <= and >= with the
+                // < and > since FOOD near the border should be ok?!
+                return  p.y < yMin
+                        || p.y > yMax
+                        || p.x < xMin
+                        || p.x > xMax
                         //|| hazardNearbyPlaces.contains(p)
                         ;
             }

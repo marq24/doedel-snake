@@ -120,6 +120,8 @@ public class SnakeTest {
         String gameMode = null;
         String gameId = null;
         Snake.logBoard = true;
+        int Y = 11;
+        int X = 11;
         String yourNameIdentifier = "lender";
 
         // gameId = "c8222b2c-9e76-4c9e-a1fc-8b8931f5c035";
@@ -170,12 +172,20 @@ public class SnakeTest {
         //gameId = "12f69f9e-f1c8-4e8b-9d22-ce2429203048";
         //Snake.debugTurn = 231;
 
+        //gameId ="b7c63a27-5ed1-4c2e-bcb5-c55ddf7f1356";
+        //gameMode = "solo";
+        //Snake.debugTurn = 424;
+        //Y = 7;
+        //X = 7;
+
+        gameId= "44664655-29d0-490b-90a1-8c84c2a40219";
+        //gameMode = "wrapped";
+        Snake.debugTurn = 211;
+
         //gameMode = "wrapped";
         //gameMode = "royale";
         //gameMode = "solo";
 
-        int Y = 11;
-        int X = 11;
 
         SimpleWSSHandler collector = new SimpleWSSHandler();
         URI uri = new URI("wss://engine.battlesnake.com/games/"+gameId+"/events");
