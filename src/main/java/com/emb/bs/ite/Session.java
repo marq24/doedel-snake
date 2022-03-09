@@ -1971,11 +1971,9 @@ if(Snake.debugTurn == turn){
                     // so we reduce the BEST-List to the none-HAZARD moves
                     bestList = bestListNoHzd;
                 } else {
-                    if(bestEntry.getKey() - bestEntryNoHzd.getKey() == 1){
-                        ArrayList<MoveWithState> secondBestList = groupByOtherHeadDistance.get(bestEntryNoHzd.getKey());
-                        if(secondBestList.containsAll(bestListNoHzd)){
-                            bestList = bestListNoHzd;
-                        }
+                    ArrayList<MoveWithState> secondBestList = groupByOtherHeadDistance.get(bestEntryNoHzd.getKey());
+                    if(secondBestList.containsAll(bestListNoHzd)){
+                        bestList = bestListNoHzd;
                     }
                 }
             }
