@@ -813,6 +813,11 @@ if(turn >= Snake.debugTurn){
         }
     }
 
+    private boolean isHazardFreeMove(MoveWithState aMove){
+        Point pos = aMove.getResPosForMyHead(this);
+        return !mHazardPresent || hazardZone[pos.y][pos.x] == 0;
+    }
+
     Point getNewPointForDirection(Point aPos, int move){
         Point newPos = aPos.clone();
         if(mWrappedMode) {
@@ -1873,14 +1878,12 @@ if(Snake.debugTurn == turn){
 
             if(secMove != null && priMove != null){
                 // Compare possible distance to other's (to compare which is less risky)
-                Point secPos = secMove.getResPosForMyHead(this);
-                Point priPos = priMove.getResPosForMyHead(this);
                 if( (secMove.state.sEscapeFromHazard && !priMove.state.sEscapeFromHazard)
                 ||  (secMove.state.sEscapeFromBorder && !priMove.state.sEscapeFromBorder)
                 ||  (!secMove.state.sEnterBorderZone && priMove.state.sEnterBorderZone)
                 ||  (!secMove.state.sEnterHazardZone && priMove.state.sEnterHazardZone)
                 ||  (!secMove.state.sEnterDangerZone && priMove.state.sEnterDangerZone
-                ||  (mHazardPresent && (hazardZone[secPos.y][secPos.x]==0 && hazardZone[priPos.y][priPos.x]!=0) ))
+                ||  (mHazardPresent && (isHazardFreeMove(secMove) && !isHazardFreeMove(priMove)) ))
                 ){
                     // prefer secondary!
                     state = secMove.move;
@@ -2002,10 +2005,6 @@ if(Snake.debugTurn == turn){
            // DO NOTHING concerning DANGER-SNEAK Heads in mConstrictorMode
         }
 
-        // if the is already only ome option left..
-        if(bestList.size() == 1){
-            MoveWithState aMove = bestList.get(0);
-        }
 
 
 if(Snake.debugTurn == turn){
@@ -2029,7 +2028,7 @@ if(Snake.debugTurn == turn){
             bestList = noneDoubleTargets;
             if(bestList.size() == 1){
                 MoveWithState aMove = bestList.get(0);
-                if(!mHazardPresent || !aMove.state.sEnterHazardZone){
+                if(!mHazardPresent || !aMove.state.sEnterHazardZone || isHazardFreeMove(aMove)){
                     return aMove;
                 }
             }
@@ -2069,7 +2068,7 @@ if(Snake.debugTurn == turn){
                 }
                 if(bestList.size() == 1){
                     MoveWithState aMove = bestList.get(0);
-                    if(!mHazardPresent || !aMove.state.sEnterHazardZone){
+                    if(!mHazardPresent || !aMove.state.sEnterHazardZone || isHazardFreeMove(aMove)){
                         return aMove;
                     }
                 }
@@ -2266,7 +2265,8 @@ if(Snake.debugTurn == turn){
 
             for (MoveWithState aMove : moveList) {
                 Point rPos = aMove.getResPosForMyHead(this);
-                if(!mHazardPresent || hazardZone[rPos.y][rPos.x]==0){
+                // see also 'isHazardFreeMove(aMove)'
+                if(!mHazardPresent || hazardZone[rPos.y][rPos.x] == 0){
                     // cool - just lat pick that one!
                     if (rPos.equals(lastTurnTail)) {
                         return aMove;
@@ -2277,6 +2277,7 @@ if(Snake.debugTurn == turn){
             // second run...
             for (MoveWithState aMove : moveList) {
                 Point rPos = aMove.getResPosForMyHead(this);
+                // see also 'isHazardFreeMove(aMove)'
                 if(!mHazardPresent || hazardZone[rPos.y][rPos.x]==0){
                     // cool - just lat pick that one!
                     if(getPointDistance(myTail, rPos) == 1 && !foodPlaces.contains(rPos)){
