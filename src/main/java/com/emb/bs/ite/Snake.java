@@ -38,14 +38,23 @@ public class Snake {
      *
      * @param args are ignored.
      */
+    public static String DOEDELCOLOR = "#cc33cc";
     public static void main(String[] args) {
         String port = System.getProperty("PORT");
         if (port == null) {
             LOG.info("Using default port: {}", port);
             port = "9191";
+            // RED@HOME
+            DOEDELCOLOR = "#FF1111";
             logBoard = true;
         } else {
             LOG.info("Found system provided port: {}", port);
+            if(port.equals("9192")){
+                // pastel green - by nina
+                DOEDELCOLOR = "#3CFBA1";
+            }else if(port.equals("9193")) {
+                DOEDELCOLOR = "#33cc33";
+            }
         }
         port(Integer.parseInt(port));
         get("/", HANDLER::process, JSON_MAPPER::writeValueAsString);
@@ -117,7 +126,8 @@ public class Snake {
             //response.put("color", "#3CFBA1");
 
             // my beta YELLOW
-            response.put("color", "#cccc33");
+            //response.put("color", "#cccc33");
+            response.put("color", DOEDELCOLOR);
 
             //response.put("color", "#3333cc");
             //response.put("color", "#FF1111");
