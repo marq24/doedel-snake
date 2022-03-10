@@ -487,18 +487,18 @@ public class Session {
             if(turn > 20 && !mWrappedMode && !mSoloMode) {
                 // food in CORNERS is TOXIC (but if we are already IN the corner we will
                 // take it!
-                if (!(myHead.x == 0 && myHead.y <= 1) || (myHead.x <= 1 && myHead.y == 0)) {
+                //if (!(myHead.x == 0 && myHead.y <= 1) || (myHead.x <= 1 && myHead.y == 0)) {
                     availableFoods.remove(new Point(0, 0));
-                }
-                if (!(myHead.x == X - 1 && myHead.y <= 1) || (myHead.x <= X - 2 && myHead.y == 0)) {
+                //}
+                //if (!(myHead.x == X - 1 && myHead.y <= 1) || (myHead.x <= X - 2 && myHead.y == 0)) {
                     availableFoods.remove(new Point(0, X - 1));
-                }
-                if (!(myHead.x == 0 && myHead.y <= Y - 2) || (myHead.x <= 1 && myHead.y == Y - 1)) {
+                //}
+                //if (!(myHead.x == 0 && myHead.y <= Y - 2) || (myHead.x <= 1 && myHead.y == Y - 1)) {
                     availableFoods.remove(new Point(Y - 1, 0));
-                }
-                if (!(myHead.x == X - 1 && myHead.y >= Y - 2) || (myHead.x >= X - 2 && myHead.y == Y - 1)) {
+                //}
+                //if (!(myHead.x == X - 1 && myHead.y >= Y - 2) || (myHead.x >= X - 2 && myHead.y == Y - 1)) {
                     availableFoods.remove(new Point(Y - 1, X - 1));
-                }
+                //}
             }
             for (Point h : snakeHeads) {
                 // food that is head of another snake that is longer or has
@@ -519,7 +519,7 @@ if(turn >= Snake.debugTurn){
         TreeMap<Integer, ArrayList<Point>> foodTargetsByDistance = new TreeMap<>();
         for (Point f : availableFoods) {
             int dist = getPointDistance(f, myHead);
-            if(!isFoodLocatedAtBorder(f) || dist < 3 || (dist < 4 && myHealth < 65) || myHealth < 51) {
+            if(!isFoodLocatedAtBorder(f) || dist == 1 || (dist <= 3 && myHealth < 61) || myHealth < 31) {
                 boolean addFoodAsTarget = true;
                 for (Point h : snakeHeads) {
                     int otherSnakesDist = getPointDistance(f, h);
@@ -1593,8 +1593,10 @@ if(turn >= Snake.debugTurn){
         // 2a - checking if we can catch our own tail?!
         // in this case we can ignore the approach of other snake heads
         // but only if this will not move into hazard
+        //if(mSoloMode || myLen > 19 || myLen >= maxOtherSnakeLen) {
         MoveWithState tailCatchMove = checkForCatchOwnTail(bestList);
         if (tailCatchMove != null) return tailCatchMove;
+        //}
 
         ///////////////////////////////////////////////////////////////////////
 
