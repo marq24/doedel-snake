@@ -49,7 +49,10 @@ public class Snake {
             logBoard = true;
         } else {
             LOG.info("Found system provided port: {}", port);
-            if(port.equals("9192")){
+            if(port.equals("9191")) {
+                logBoard = true;
+                DOEDELCOLOR = "#FF1111";
+            }else if(port.equals("9192")){
                 // pastel green - by nina
                 DOEDELCOLOR = "#3CFBA1";
             }else if(port.equals("9193")) {

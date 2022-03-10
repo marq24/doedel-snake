@@ -2281,17 +2281,33 @@ if(turn >= Snake.debugTurn){
         boolean canGoRight  = finalMoveOptions.contains(intMovesToMoveKeysMap.get(RIGHT));
         boolean canGoDown   = finalMoveOptions.contains(intMovesToMoveKeysMap.get(DOWN));
         boolean canGoLeft   = finalMoveOptions.contains(intMovesToMoveKeysMap.get(LEFT));
-        if(myHead.y < targetY && canGoUp){
-            return UP;
-        }
-        if(myHead.y > targetY && canGoDown){
-            return DOWN;
-        }
-        if(myHead.x < targetX && canGoRight){
-            return RIGHT;
-        }
-        if(myHead.x > targetX && canGoLeft){
-            return LEFT;
+
+        if(myHead.y > myHead.x){
+            if(myHead.y < targetY && canGoUp){
+                return UP;
+            }
+            if(myHead.y > targetY && canGoDown){
+                return DOWN;
+            }
+            if(myHead.x < targetX && canGoRight){
+                return RIGHT;
+            }
+            if(myHead.x > targetX && canGoLeft){
+                return LEFT;
+            }
+        }else{
+            if(myHead.x < targetX && canGoRight){
+                return RIGHT;
+            }
+            if(myHead.x > targetX && canGoLeft){
+                return LEFT;
+            }
+            if(myHead.y < targetY && canGoUp){
+                return UP;
+            }
+            if(myHead.y > targetY && canGoDown){
+                return DOWN;
+            }
         }
         return UNKNOWN;
     }
