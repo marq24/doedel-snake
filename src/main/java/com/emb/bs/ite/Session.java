@@ -2054,7 +2054,7 @@ if(turn >= Snake.debugTurn){
                 // see also 'isHazardFreeMove(aMove)'
                 if(!mHazardPresent || hazardZone[rPos.y][rPos.x]==0){
                     // cool - just lat pick that one!
-                    if(getPointDistance(myTail, rPos) == 1 && !foodPlaces.contains(rPos)){
+                    if((getPointDistance(lastTurnTail, rPos) == 1 || getPointDistance(myTail, rPos) == 1) && !foodPlaces.contains(rPos)){
                         return aMove;
                     }
                 }

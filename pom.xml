@@ -57,10 +57,11 @@
                 <configuration>
                     <executable>java</executable>
                     <arguments>
-                        <argument>-classpath</argument>
+                        <!-->-classpath</argument>
                         <classpath/>
-                        <argument>com.emb.bs.ite.Snake</argument>
+                        <argument>com.emb.bs.ite.Snake</argument-->
                     </arguments>
+                    <mainClass>com.emb.bs.ite.Snake</mainClass>
                 </configuration>
             </plugin>
             <plugin>
