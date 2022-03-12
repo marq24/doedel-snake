@@ -62,6 +62,7 @@ public class Session {
     String LASTMOVE = null;
 
     Point myHead;
+    Point myNeck;
     Point myTail;
     int myLen;
     int myHealth;
@@ -404,40 +405,46 @@ public class Session {
     }
 
     private int moveDirection(int move, RiskState risk) {
-        if(risk == null){
-            risk = new RiskState();
-        }else{
-            risk.next();
-        }
-        if (risk.endReached) {
-            return DOOMED;
-        } else if (risk.retry) {
-            //logState(moveAsString);
-            boolean canMove = false;
+        // checkForOWN Neck...
+        Point resPos = getNewPointForDirection(myHead, move);
+        if(resPos.equals(myNeck)){
+            return UNKNOWN;
+        }else {
+            if (risk == null) {
+                risk = new RiskState();
+            } else {
+                risk.next();
+            }
+            if (risk.endReached) {
+                return DOOMED;
+            } else if (risk.retry) {
+                //logState(moveAsString);
+                boolean canMove = false;
 
-            switch (move){
-                case UP:
-                    canMove = canMoveUp();
-                    break;
-                case RIGHT:
-                    canMove = canMoveRight();
-                    break;
-                case DOWN:
-                    canMove = canMoveDown();
-                    break;
-                case LEFT:
-                    canMove = canMoveLeft();
-                    break;
+                switch (move) {
+                    case UP:
+                        canMove = canMoveUp();
+                        break;
+                    case RIGHT:
+                        canMove = canMoveRight();
+                        break;
+                    case DOWN:
+                        canMove = canMoveDown();
+                        break;
+                    case LEFT:
+                        canMove = canMoveLeft();
+                        break;
+                }
+                if (canMove) {
+                    LOG.debug(getMoveIntAsString(move) + ": YES");
+                    return move;
+                } else {
+                    LOG.debug(getMoveIntAsString(move) + ": NO");
+                    return moveDirection(move, risk);
+                }
             }
-            if (canMove) {
-                LOG.debug(getMoveIntAsString(move)+": YES");
-                return move;
-            }else{
-                LOG.debug(getMoveIntAsString(move)+": NO");
-                return moveDirection(move, risk);
-            }
+            return UNKNOWN;
         }
-        return UNKNOWN;
     }
 
     private int getAdvantage(){
