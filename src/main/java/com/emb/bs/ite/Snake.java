@@ -130,6 +130,8 @@ public class Snake {
 
             // my beta YELLOW
             //response.put("color", "#cccc33");
+
+            DOEDELCOLOR = "#3CFBA1";
             response.put("color", DOEDELCOLOR);
 
             //response.put("color", "#3333cc");
