@@ -329,19 +329,19 @@ public class Snake {
                         }
                     }
 
-                    if (newYDown > -1 && s.snakeBodies[newYDown][h.x] == 0 && s.myBody[newYDown][h.x]==0) {
+                    if (newYDown > -1 && s.snakeBodies[newYDown][h.x] == 0 && s.myBody[newYDown][h.x] == 0) {
                         handleSnakeThisMovePos(snakeLen, new Point(newYDown, h.x), s);
                         s.snakeThisMovePossibleLocations[newYDown][h.x] = Math.max(snakeLen, s.snakeThisMovePossibleLocations[newYDown][h.x]);
                     }
-                    if (newYUp > -1 && s.snakeBodies[newYUp][h.x] == 0 && s.myBody[newYUp][h.x]==0) {
+                    if (newYUp > -1 && s.snakeBodies[newYUp][h.x] == 0 && s.myBody[newYUp][h.x] == 0) {
                         handleSnakeThisMovePos(snakeLen, new Point(newYUp, h.x), s);
                         s.snakeThisMovePossibleLocations[newYUp][h.x] = Math.max(snakeLen, s.snakeThisMovePossibleLocations[newYUp][h.x]);
                     }
-                    if (newXLeft > -1 && s.snakeBodies[h.y][newXLeft] == 0 && s.myBody[h.y][newXLeft]==0) {
+                    if (newXLeft > -1 && s.snakeBodies[h.y][newXLeft] == 0 && s.myBody[h.y][newXLeft] == 0) {
                         handleSnakeThisMovePos(snakeLen, new Point(h.y, newXLeft), s);
                         s.snakeThisMovePossibleLocations[h.y][newXLeft] = Math.max(snakeLen, s.snakeThisMovePossibleLocations[h.y][newXLeft]);
                     }
-                    if (newXRight > -1 && s.snakeBodies[h.y][newXRight] == 0 && s.myBody[h.y][newXRight]==0) {
+                    if (newXRight > -1 && s.snakeBodies[h.y][newXRight] == 0 && s.myBody[h.y][newXRight] == 0) {
                         handleSnakeThisMovePos(snakeLen, new Point(h.y, newXRight), s);
                         s.snakeThisMovePossibleLocations[h.y][newXRight] = Math.max(snakeLen, s.snakeThisMovePossibleLocations[h.y][newXRight]);
                     }

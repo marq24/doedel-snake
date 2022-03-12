@@ -838,7 +838,7 @@ if(turn >= Snake.debugTurn){
                             } else if (snakeBodies[y][x] > 0) {
                                 finalMap[y][x] = 1;
                             } else if (!ignoreOtherTargets) {
-                                if(snakeThisMovePossibleLocations[y][x] > 0) {
+                                if(snakeThisMovePossibleLocations[y][x] >= myLen) {
                                     finalMap[y][x] = 1;
                                     /*int otherSnakeLen = snakeNextMovePossibleLocations[y][x];
                                     // finalMap is ONLY null, when this is called directly with the "myHead" pos
@@ -923,7 +923,7 @@ if(turn >= Snake.debugTurn){
                     finalMap[y][x] = 1;
                 } else if (snakeBodies[y][x] > 0) {
                     finalMap[y][x] = 1;
-                } else if (!ignoreOtherTargets && snakeThisMovePossibleLocations[y][x] > 0) {
+                } else if (!ignoreOtherTargets && snakeThisMovePossibleLocations[y][x] >= myLen) {
                     finalMap[y][x] = 1;
                 }
             }
@@ -1880,7 +1880,7 @@ if(turn >= Snake.debugTurn){
                                 finalMap[y][x] = 1;
                             } else if (snakeBodies[y][x] > 0) {
                                 finalMap[y][x] = 1;
-                            } else if (snakeThisMovePossibleLocations[y][x] > 0) {
+                            } else if (snakeThisMovePossibleLocations[y][x] >= myLen) {
                                 finalMap[y][x] = 1;
                             }
                         }
