@@ -86,7 +86,6 @@ public class Session {
     private boolean ignoreOtherTargets = false;
     private boolean enterHazardZone = false;
     private boolean enterBorderZone = false;
-    //private boolean enterDangerZone = false;
     private boolean enterNoGoZone = false;
 
     private boolean escapeFromBorder = false;
@@ -109,14 +108,13 @@ public class Session {
         boolean sIgnoreOtherTargets = ignoreOtherTargets;
         boolean sEnterHazardZone = enterHazardZone;
         boolean sEnterBorderZone = enterBorderZone;
-        //boolean sEnterDangerZone = enterDangerZone;
         boolean sEnterNoGoZone = enterNoGoZone;
         int sMAXDEEP = MAXDEEP;
 
         @Override
         public String toString() {
                 return
-                      " st:" + getMoveIntAsString(sdState).substring(0, 2).toUpperCase() + "[" + sdState + "]"
+                      "st:" + getMoveIntAsString(sdState).substring(0, 2).toUpperCase() + "[" + sdState + "]"
                     + " ph:" + sTPhase
                     + (sEscapeFromHazard ? " GETOUTHAZD" : "")
                     + (mHazardPresent ? " goHazd? " + sEnterHazardZone : "")
@@ -124,7 +122,6 @@ public class Session {
                     + (sEscapeFromBorder ? " GAWYBRD" : "")
                     + (sIgnoreOtherTargets ? " IGNOREOTHERS" : "")
                     + " maxDeep? " + sMAXDEEP
-                    //+ " goDanger? " + sEnterDangerZone
                     + " goNoGo? " + sEnterNoGoZone;
         }
     }
@@ -143,7 +140,6 @@ public class Session {
         enterHazardZone = savedState.sEnterHazardZone;
         enterBorderZone = savedState.sEnterBorderZone;
         MAXDEEP = savedState.sMAXDEEP;
-        //enterDangerZone = savedState.sEnterDangerZone;
         enterNoGoZone = savedState.sEnterNoGoZone;
     }
 
@@ -186,7 +182,6 @@ public class Session {
         xMin = 1;
         yMax = Y - 2;
         xMax = X - 2;
-        //enterDangerZone = false;
         enterNoGoZone = false;
         enterBorderZone = false;
         enterHazardZone = false;
@@ -200,9 +195,6 @@ public class Session {
         doomed = false;
         mHazardPresent = false;
 
-        //firstMoveToTry = -1;
-        //cmdChain = new ArrayList<>();
-
         snakeHeads = new ArrayList<>();
         snakeBodies = new int[Y][X];
         snakeThisMovePossibleLocations = new int[Y][X];
@@ -211,9 +203,6 @@ public class Session {
         maxOtherSnakeLen = 0;
 
         myBody = new int[Y][X];
-
-        // TODO: MAXDEEP can be myLen-1 IF THERE IS NO FODD in front of us
-        // really???
         MAXDEEP = Math.max(myLen, Y*X/2);//Math.min(len, 20);
 
         foodGoForIt = false;
@@ -390,10 +379,7 @@ public class Session {
                 } else {
                     MAXDEEP--;
                 }
-            /*} else if (!enterDangerZone) {
-                LOG.debug("activate now GO-TO-DANGER-ZONE");
-                enterDangerZone = true;
-            */} else if (!enterNoGoZone) {
+            } else if (!enterNoGoZone) {
                 LOG.debug("activate now GO-TO-NO-GO-ZONE");
                 enterNoGoZone = true;
             } else {
@@ -1071,7 +1057,6 @@ if(turn >= Snake.debugTurn){
                         && (enterBorderZone || !(newY == 0 || newY == Y-1 || myHead.x == 0 || myHead.x == X-1))
                         && (!escapeFromHazard || hazardZone[newY][myHead.x] == 0)
                         && (enterHazardZone || myHealth > 96 || hazardZone[newY][myHead.x] == 0)
-                        //&& (enterDangerZone || snakeThisMovePossibleLocations[newY][myHead.x] <= myLen)
                         && (enterNoGoZone || !willCreateLoop(UP, myHead, null,0));
             }
         } catch (IndexOutOfBoundsException e) {
@@ -1105,7 +1090,6 @@ if(turn >= Snake.debugTurn){
                         && (enterBorderZone || !(myHead.y == 0 || myHead.y == Y-1 || newX == 0 || newX == X-1))
                         && (!escapeFromHazard || hazardZone[myHead.y][newX] == 0)
                         && (enterHazardZone || myHealth > 96 || hazardZone[myHead.y][newX] == 0)
-                        //&& (enterDangerZone || snakeThisMovePossibleLocations[myHead.y][newX] <= myLen)
                         && (enterNoGoZone || !willCreateLoop(RIGHT, myHead, null, 0))
                         ;
             }
@@ -1140,7 +1124,6 @@ if(turn >= Snake.debugTurn){
                         && (enterBorderZone || !(newY == 0 || newY == Y-1 || myHead.x == 0 || myHead.x == X-1))
                         && (!escapeFromHazard || hazardZone[newY][myHead.x] == 0)
                         && (enterHazardZone || myHealth > 96 || hazardZone[newY][myHead.x] == 0)
-                        //&& (enterDangerZone || snakeThisMovePossibleLocations[newY][myHead.x] <= myLen)
                         && (enterNoGoZone || !willCreateLoop(DOWN, myHead, null, 0))
                         ;
             }
@@ -1175,7 +1158,6 @@ if(turn >= Snake.debugTurn){
                         && (enterBorderZone || !(myHead.y == 0 || myHead.y == Y-1 || newX == 0 || newX == X-1))
                         && (!escapeFromHazard || hazardZone[myHead.y][newX] == 0)
                         && (enterHazardZone || myHealth > 96 || hazardZone[myHead.y][newX] == 0)
-                        //&& (enterDangerZone || snakeThisMovePossibleLocations[myHead.y][newX] <= myLen)
                         && (enterNoGoZone || !willCreateLoop(LEFT, myHead, null, 0))
                         ;
             }
@@ -1187,7 +1169,7 @@ if(turn >= Snake.debugTurn){
 
     private boolean canMoveLeft(Point aPos, int[][] map, int c) {
         try {
-            int newX = (aPos.x - 1 + X) % X;//aPos.x > 0 ? aPos.x - 1 : X-1;
+            int newX = (aPos.x - 1 + X) % X;
             return  (mWrappedMode || aPos.x > xMin)
                     && (map[aPos.y][newX] == 0 || map[aPos.y][newX] == 2)
                     && (enterNoGoZone || !willCreateLoop(LEFT, aPos, map, c))
@@ -1213,7 +1195,6 @@ if(turn >= Snake.debugTurn){
                 + (escapeFromBorder ? " GAWYBRD" : "")
                 + (ignoreOtherTargets ? " IGNOREOTHERS" : "")
                 + " maxDeep? " + MAXDEEP
-                //+ " goDanger? " + enterDangerZone
                 + " goNoGo? " + enterNoGoZone
                 + " "+gameId;
         LOG.info(msg);
@@ -1506,15 +1487,6 @@ if(turn >= Snake.debugTurn){
         }*/
 
         ///////////////////////////////////////////////////////////////////////
-        /*if(turn >= Snake.debugTurn){
-            LOG.debug("HALT" + possibleMoves);
-        }
-        // filtering for least dangerous locations...
-        TreeMap<Integer, ArrayList<MoveWithState>> groupByDirectThread = groupByDirectThreads(possibleMoves);
-        ArrayList<MoveWithState> bestList = groupByDirectThread.firstEntry().getValue();
-        if(bestList.size() == 1){
-            return bestList.get(0);
-        }*/
 
         //1a) only keep the moves with the highest DEEP...
         ArrayList<MoveWithState> onlyWithHighestDept = filterStep01ByMaxDeept(availableMoves);
@@ -1592,15 +1564,11 @@ if(turn >= Snake.debugTurn){
         //2) remove all "toDangerous" moves (when we have better alternatives)
         boolean aMoveHasEscapeFromHazard = false;
         boolean aMoveHasEscapeFromBorder = false;
-        //boolean keepGoDanger = true;
         boolean keepGoNoGo = true;
         for (MoveWithState aMove : bestList) {
             if (keepGoNoGo && !aMove.state.sEnterNoGoZone) {
                 keepGoNoGo = false;
             }
-            /*if (keepGoDanger && !aMove.state.sEnterDangerZone) {
-                keepGoDanger = false;
-            }*/
 
             // escape values will be used later in the code!
             if(!aMoveHasEscapeFromHazard){
@@ -1617,9 +1585,6 @@ if(turn >= Snake.debugTurn){
             if (!keepGoNoGo && aMove.state.sEnterNoGoZone){
                 keepOnlyWithLowRisk.remove(aMove);
             }
-            /*if (!keepGoDanger && aMove.state.sEnterDangerZone){
-                keepOnlyWithLowRisk.remove(aMove);
-            }*/
         }
         if(keepOnlyWithLowRisk.size() > 0) {
             bestList = keepOnlyWithLowRisk;
@@ -2036,7 +2001,6 @@ if(turn >= Snake.debugTurn){
                         ||  (secMove.state.sEscapeFromBorder && !priMove.state.sEscapeFromBorder)
                         ||  (!secMove.state.sEnterBorderZone && priMove.state.sEnterBorderZone)
                         ||  (!secMove.state.sEnterHazardZone && priMove.state.sEnterHazardZone)
-                        //||  (!secMove.state.sEnterDangerZone && priMove.state.sEnterDangerZone)
                         ||  (mHazardPresent && (isHazardFreeMove(secMove) && !isHazardFreeMove(priMove)) )
                 ){
                     // prefer secondary!
@@ -2068,7 +2032,6 @@ if(turn >= Snake.debugTurn){
 
         return null;
     }
-
 
     private boolean checkIfAnyMoveFromPointWillGetUsOutOfHazard(Point p) {
         boolean ret = isPossibleMoveOutOfHazard(getNewPointForDirection(p, UP));
@@ -2136,7 +2099,6 @@ if(turn >= Snake.debugTurn){
                     }
                 }
             }
-
         }
         return null;
     }
@@ -2166,7 +2128,6 @@ if(turn >= Snake.debugTurn){
         }
         return ++count;
     }
-
 
     private int countMoves(int[][] map, Point aPos, int move, int count) {
         Point nextPoint = getNewPointForDirection(aPos, move);
@@ -2222,47 +2183,6 @@ if(turn >= Snake.debugTurn){
                 (j==LEFT && i==RIGHT)
                 ;
     }
-
-    /*private TreeMap<Integer, ArrayList<MoveWithState>> groupByOtherHeadDistance(ArrayList<MoveWithState> bestList, ArrayList<PointWithBool> dangerousNextMovePositions) {
-if(Snake.debugTurn == turn){
-    LOG.debug("HALT" + bestList);
-}
-        TreeMap<Integer, ArrayList<MoveWithState>> returnMap = new TreeMap<>();
-        for (MoveWithState aMove : bestList) {
-            Point resultingPos = aMove.getResPosForMyHead(this);
-            int minDist = 100;
-            for(PointWithBool otherSnake: dangerousNextMovePositions) {
-                int minEvalDistance = 3;
-
-                // otherSnake.bool => snake have the same length then we do
-                if(otherSnake.bool){
-                    minEvalDistance = 2;
-                }
-
-                int faceToFaceDist = getPointDistance(otherSnake.point, resultingPos);
-                if(faceToFaceDist == 2){
-                    // will this end in a CAN BE CATCHED in NEXT Move?!
-                    if(getPointXDistance(otherSnake.point, resultingPos) == 1){
-                        faceToFaceDist = 1;
-                    }
-                }
-                if (faceToFaceDist < minEvalDistance) {
-                    minDist = Math.min(minDist, faceToFaceDist);
-                }
-            }
-
-            ArrayList<MoveWithState> moves = returnMap.get(minDist);
-            if(moves == null) {
-                moves = new ArrayList<>();
-                returnMap.put(minDist, moves);
-            }
-            moves.add(aMove);
-        }
-if(Snake.debugTurn == turn){
-    LOG.debug("HALT" + bestList);
-}
-        return returnMap;
-    }*/
 
     private int XtryFollowMovePlan(ArrayList<MoveWithState> finalMoveOptions) {
         ArrayList<MoveWithState> noBorder = new ArrayList<>(finalMoveOptions);
