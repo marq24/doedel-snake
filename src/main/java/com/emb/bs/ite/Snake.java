@@ -328,19 +328,19 @@ public class Snake {
 
                     if (newYDown > -1 && s.snakeBodies[newYDown][h.x] == 0) {
                         handleSnakeNextMovePos(snakeLen, new Point(newYDown, h.x), s);
-                        s.snakeNextMovePossibleLocations[newYDown][h.x] = Math.max(snakeLen, s.snakeNextMovePossibleLocations[newYDown][h.x]);
+                        s.snakeThisMovePossibleLocations[newYDown][h.x] = Math.max(snakeLen, s.snakeThisMovePossibleLocations[newYDown][h.x]);
                     }
                     if (newYUp > -1 && s.snakeBodies[newYUp][h.x] == 0) {
                         handleSnakeNextMovePos(snakeLen, new Point(newYUp, h.x), s);
-                        s.snakeNextMovePossibleLocations[newYUp][h.x] = Math.max(snakeLen, s.snakeNextMovePossibleLocations[newYUp][h.x]);
+                        s.snakeThisMovePossibleLocations[newYUp][h.x] = Math.max(snakeLen, s.snakeThisMovePossibleLocations[newYUp][h.x]);
                     }
                     if (newXLeft > -1 && s.snakeBodies[h.y][newXLeft] == 0) {
                         handleSnakeNextMovePos(snakeLen, new Point(h.y, newXLeft), s);
-                        s.snakeNextMovePossibleLocations[h.y][newXLeft] = Math.max(snakeLen, s.snakeNextMovePossibleLocations[h.y][newXLeft]);
+                        s.snakeThisMovePossibleLocations[h.y][newXLeft] = Math.max(snakeLen, s.snakeThisMovePossibleLocations[h.y][newXLeft]);
                     }
                     if (newXRight > -1 && s.snakeBodies[h.y][newXRight] == 0) {
                         handleSnakeNextMovePos(snakeLen, new Point(h.y, newXRight), s);
-                        s.snakeNextMovePossibleLocations[h.y][newXRight] = Math.max(snakeLen, s.snakeNextMovePossibleLocations[h.y][newXRight]);
+                        s.snakeThisMovePossibleLocations[h.y][newXRight] = Math.max(snakeLen, s.snakeThisMovePossibleLocations[h.y][newXRight]);
                     }
                 }
             }
@@ -368,13 +368,22 @@ public class Snake {
             }
         }
 
-        private void handleSnakeNextMovePos(int snakeLen, Point p, Session s) {
-            ArrayList<Integer> list = s.snakeNextMovePossibleLocationList.get(p);
+        private void handleSnakeNextMovePos(int snakeLen, Point possibleSneakPosition, Session s) {
+            ArrayList<Integer> list = s.snakeThisMovePossibleLocationList.get(possibleSneakPosition);
             if(list == null){
                 list = new ArrayList<>();
-                s.snakeNextMovePossibleLocationList.put(p, list);
+                s.snakeThisMovePossibleLocationList.put(possibleSneakPosition, list);
             }
             list.add(snakeLen);
+
+            // from the possibleLocations also calculating the possible points that
+            // other snake can reach in the next round...
+            if(snakeLen > s.myLen || (snakeLen == s.myLen && s.foodPlaces.contains(possibleSneakPosition))){
+                s.snakeNextPossibleLocations.add(s.getNewPointForDirection(possibleSneakPosition, Session.UP));
+                s.snakeNextPossibleLocations.add(s.getNewPointForDirection(possibleSneakPosition, Session.LEFT));
+                s.snakeNextPossibleLocations.add(s.getNewPointForDirection(possibleSneakPosition, Session.DOWN));
+                s.snakeNextPossibleLocations.add(s.getNewPointForDirection(possibleSneakPosition, Session.RIGHT));
+            }
         }
 
         /**
