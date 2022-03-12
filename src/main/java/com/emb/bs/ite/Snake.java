@@ -391,7 +391,7 @@ public class Snake {
 
         private void handleSnakeNextMovePos(int move, Point possibleSneakPosition, Session s) {
             Point p = s.getNewPointForDirection(possibleSneakPosition, move);
-            if(p.y > 0 && p.x > 0 && p.y < s.Y-1 && p.x < s.X-1 && s.myBody[p.y][p.x] == 0 && s.snakeBodies[p.y][p.x] == 0) {
+            if(p.y > 0 && p.x > 0 && p.y < s.Y && p.x < s.X && s.myBody[p.y][p.x] == 0 && s.snakeBodies[p.y][p.x] == 0) {
                 s.snakeNextPossibleLocations.add(p);
             }
         }
