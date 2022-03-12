@@ -1518,6 +1518,16 @@ if(turn >= Snake.debugTurn){
                     }
                 }else{
                     // we don't want to die - we use the 'groupByDirectThread' list as BEST-List
+                    if(availableMoves.size() == 2 && bestList.size() == 1){
+                        MoveWithState aMove = bestList.get(0);
+                        if(aMove.state.sMAXDEEP < myLen/2){
+                            // ok looks like we will not be going to fit into the remaining hole... - so we a probably
+                            // dead ANYHOW - let's take the RISKY move then!
+                            Map.Entry <Integer, ArrayList<MoveWithState>> bestEntry = groupByDirectThread.firstEntry();
+                            groupByDirectThread.remove(bestEntry.getKey());
+                            bestList = groupByDirectThread.firstEntry().getValue();
+                        }
+                    }
                 }
             }
         }else{
