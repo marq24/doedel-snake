@@ -206,6 +206,11 @@ public class SnakeTest {
         gameId = "56cb59d8-5e09-4589-9fca-8aeb6ab4151a";
         Snake.debugTurn = 39;
 
+        // better to go to a "possible" kill by anther snake, then move into
+        // a way to small hole...
+        gameId = "6d1d207e-75b3-42ae-b777-3d0bc62c6a23";
+        Snake.debugTurn = 199;
+
         // IMPLEMENT FOLLOW OTHER SNAKES-TAIL
 
         //gameMode = "wrapped";
