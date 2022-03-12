@@ -837,20 +837,23 @@ if(turn >= Snake.debugTurn){
                                 finalMap[y][x] = 1;
                             } else if (snakeBodies[y][x] > 0) {
                                 finalMap[y][x] = 1;
-                            } else if (!ignoreOtherTargets && snakeThisMovePossibleLocations[y][x] > 0) {
-                                finalMap[y][x] = 1;
-
-                                /*int otherSnakeLen = snakeNextMovePossibleLocations[y][x];
-                                // finalMap is ONLY null, when this is called directly with the "myHead" pos
-                                // and the "move" direction - so the 'newPos' is actually the next location
-                                // of our snake after this "planed" move... if this location is actually the
-                                // possibleTargetLocation of another sneak, we can/should check, if we are
-                                // stringer => if we are stronger we can consider this field as FREE...
-                                if(!(newPos.y == y && newPos.x == x && myLen > otherSnakeLen)){
+                            } else if (!ignoreOtherTargets) {
+                                if(snakeThisMovePossibleLocations[y][x] > 0) {
+                                    finalMap[y][x] = 1;
+                                    /*int otherSnakeLen = snakeNextMovePossibleLocations[y][x];
+                                    // finalMap is ONLY null, when this is called directly with the "myHead" pos
+                                    // and the "move" direction - so the 'newPos' is actually the next location
+                                    // of our snake after this "planed" move... if this location is actually the
+                                    // possibleTargetLocation of another sneak, we can/should check, if we are
+                                    // stringer => if we are stronger we can consider this field as FREE...
+                                    if(!(newPos.y == y && newPos.x == x && myLen > otherSnakeLen)){
+                                        finalMap[y][x] = 1;
+                                    }*/
+                                    // BUT all this is OBSOLETE, since we will anyhow mark the next position of
+                                    // our sneak as "visited" in the finalMap...
+                                }/* else if(snakeNextPossibleLocations.contains( new Point(y,x))){
                                     finalMap[y][x] = 1;
                                 }*/
-                                // BUT all this is OBSOLETE, since we will anyhow mark the next position of
-                                // our sneak as "visited" in the finalMap...
                             }
                         }
                     }
