@@ -1481,7 +1481,7 @@ if(turn >= Snake.debugTurn){
         }
     }
 
-    private MoveWithState getBestMove(ArrayList<MoveWithState> possibleMoves) {
+    private MoveWithState getBestMove(ArrayList<MoveWithState> availableMoves) {
         // ok we have plenty of alternative moves...
         // we should check, WHICH of them is the most promising...
 
@@ -1505,14 +1505,14 @@ if(turn >= Snake.debugTurn){
         }*/
 
         //1a) only keep the moves with the highest DEEP...
-        ArrayList<MoveWithState> onlyWithHighestDept = filterStep01ByMaxDeept(possibleMoves);
+        ArrayList<MoveWithState> onlyWithHighestDept = filterStep01ByMaxDeept(availableMoves);
 
         //1b) comparing the direct thread level...
-        TreeMap<Integer, ArrayList<MoveWithState>> groupByDirectThread = groupByDirectThreads(possibleMoves);
+        TreeMap<Integer, ArrayList<MoveWithState>> groupByDirectThread = groupByDirectThreads(availableMoves);
         ArrayList<MoveWithState> bestList = groupByDirectThread.firstEntry().getValue();
-        if(bestList.size() != possibleMoves.size()){
+        if(bestList.size() != availableMoves.size()){
             ArrayList<MoveWithState> bestOfTwoWorlds = new ArrayList<>();
-            for(MoveWithState aMove : possibleMoves){
+            for(MoveWithState aMove : availableMoves){
                 if(bestList.contains(aMove) && onlyWithHighestDept.contains(aMove)){
                     bestOfTwoWorlds.add(aMove);
                 }
@@ -1524,7 +1524,7 @@ if(turn >= Snake.debugTurn){
                 if(groupByDirectThread.containsKey(1)){
                     ArrayList<MoveWithState> secondBestList = groupByDirectThread.get(1);
                     ArrayList<MoveWithState> bestOfTwoWorlds2 = new ArrayList<>();
-                    for(MoveWithState aMove : possibleMoves){
+                    for(MoveWithState aMove : availableMoves){
                         if(secondBestList.contains(aMove) && onlyWithHighestDept.contains(aMove)){
                             bestOfTwoWorlds2.add(aMove);
                         }
@@ -1600,7 +1600,7 @@ if(turn >= Snake.debugTurn){
         }
 
         // do finally the filtering...
-        ArrayList<MoveWithState> keepOnlyWithLowRisk = new ArrayList<>(possibleMoves);
+        ArrayList<MoveWithState> keepOnlyWithLowRisk = new ArrayList<>(bestList);
         for (MoveWithState aMove : bestList) {
             if (!keepGoNoGo && aMove.state.sEnterNoGoZone){
                 keepOnlyWithLowRisk.remove(aMove);
@@ -1612,8 +1612,8 @@ if(turn >= Snake.debugTurn){
         if(keepOnlyWithLowRisk.size() > 0) {
             bestList = keepOnlyWithLowRisk;
             // ok only one option left - so let's use this...
-            if (possibleMoves.size() == 1) {
-                return possibleMoves.get(0);
+            if (bestList.size() == 1) {
+                return bestList.get(0);
             }
         }
 

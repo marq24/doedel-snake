@@ -169,18 +169,35 @@ public class SnakeTest {
         //gameMode = "solo";
 
         // Volker killed me -> cause I move right (cause of false move to border = true)
-        //gameId = "12f69f9e-f1c8-4e8b-9d22-ce2429203048";
-        //Snake.debugTurn = 231;
+        gameId = "12f69f9e-f1c8-4e8b-9d22-ce2429203048";
+        Snake.debugTurn = 231;
 
-        //gameId ="b7c63a27-5ed1-4c2e-bcb5-c55ddf7f1356";
+        //gameId ="2fd11a5c-5414-4421-b106-f697526f2b46";
         //gameMode = "solo";
-        //Snake.debugTurn = 424;
+        //Snake.debugTurn = 1179;
         //Y = 7;
         //X = 7;
 
-        gameId= "e794ee4d-3b55-4681-90b4-5e4d2b7fb18f";
-        gameMode = "wrapped";
-        Snake.debugTurn = 100;
+        // this leads to a FALSE counting of free space left (DOWN:8 and LEFT only 5)
+        // this is wrong since it should be "equal"
+        gameId= "3b7b71c8-59c8-4746-8621-97ad38a613eb";
+        Snake.debugTurn = 140;
+
+        // also a "false" SPACE-LEFT calc
+        gameId = "da8e4d27-6929-49e4-8eec-15ae09278f8d";
+        Snake.debugTurn = 373;
+        //gameMode = "wrapped";
+
+        gameId ="5496c4d4-3f39-43a7-8034-c19d11321de4";
+        Snake.debugTurn = 82;
+
+        gameId = "f59d8134-3e8f-4842-9d8f-4e53a09f0b34";
+        Snake.debugTurn = 372;
+
+        gameId = "0bf30361-4345-49df-b73a-0fec864064fd";
+        Snake.debugTurn = 158;
+
+        // IMPLEMENT FOLLOW OTHER SNAKES-TAIL
 
         //gameMode = "wrapped";
         //gameMode = "royale";
