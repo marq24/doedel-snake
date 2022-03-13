@@ -83,6 +83,7 @@ public class Session {
     ArrayList<Point> foodPlaces = null;
 
     private int MAXDEEP = 0;
+    private int deptTillTailCatch = Integer.MAX_VALUE;
     private boolean ignoreOtherTargets = false;
     private boolean enterHazardZone = false;
     private boolean enterBorderZone = false;
@@ -110,6 +111,7 @@ public class Session {
         boolean sEnterBorderZone = enterBorderZone;
         boolean sEnterNoGoZone = enterNoGoZone;
         int sMAXDEEP = MAXDEEP;
+        int sDeptTillTailCatch = deptTillTailCatch;
 
         @Override
         public String toString() {
@@ -122,6 +124,7 @@ public class Session {
                     + (sEscapeFromBorder ? " GAWYBRD" : "")
                     + (sIgnoreOtherTargets ? " IGNOREOTHERS" : "")
                     + " maxDeep? " + sMAXDEEP
+                    + " tailDeep? "+ sDeptTillTailCatch
                     + " goNoGo? " + sEnterNoGoZone;
         }
     }
@@ -140,6 +143,7 @@ public class Session {
         enterHazardZone = savedState.sEnterHazardZone;
         enterBorderZone = savedState.sEnterBorderZone;
         MAXDEEP = savedState.sMAXDEEP;
+        deptTillTailCatch = savedState.sDeptTillTailCatch;
         enterNoGoZone = savedState.sEnterNoGoZone;
     }
 
@@ -204,6 +208,7 @@ public class Session {
 
         myBody = new int[Y][X];
         MAXDEEP = Math.max(myLen, Y*X/2);//Math.min(len, 20);
+        deptTillTailCatch = Integer.MAX_VALUE;
 
         foodGoForIt = false;
         foodFetchConditionGoHazard = false;
@@ -376,6 +381,7 @@ public class Session {
                     ignoreOtherTargets = true;
                     LOG.debug("activate IGNOREOTHERS (TARGETS) and reset MAXDEEP from:" + MAXDEEP+" to:"+myLen);
                     MAXDEEP = Math.max(myLen, Y*X/2);
+                    deptTillTailCatch = Integer.MAX_VALUE;
                 } else {
                     MAXDEEP--;
                 }
@@ -512,9 +518,10 @@ if(turn >= Snake.debugTurn){
 }
 
         TreeMap<Integer, ArrayList<Point>> foodTargetsByDistance = new TreeMap<>();
+        boolean weAreShorter = myLen <= maxOtherSnakeLen;
         for (Point f : availableFoods) {
             int dist = getPointDistance(f, myHead);
-            if(!isFoodLocatedAtBorder(f) || dist == 1 || (dist <= 3 && myHealth < 61) || myHealth < 31) {
+            if(!isFoodLocatedAtBorder(f) || (dist == 1 && weAreShorter) || (dist <= 3 && myHealth < 61) || myHealth < 31) {
                 boolean addFoodAsTarget = true;
                 for (Point h : snakeHeads) {
                     int otherSnakesDist = getPointDistance(f, h);
@@ -808,6 +815,7 @@ if(turn >= Snake.debugTurn){
             if(count <= MAXDEEP) {
                 Point newPos = getNewPointForDirection(aPos, move);
                 if(lastTurnTail != null && newPos.equals(lastTurnTail) && !foodPlaces.contains(newPos)){
+                    deptTillTailCatch = count;
                     return false;
                 }
 
@@ -1884,6 +1892,32 @@ if(turn >= Snake.debugTurn){
     LOG.debug("HALT" + bestList);
 }
 
+        // compare by resulting distance to other sneak heads
+        TreeMap<Integer, ArrayList<MoveWithState>> groupByDistanceToOtherSneaks = new TreeMap<>();
+        for (MoveWithState aMove : bestList) {
+
+            Point resPos = aMove.getResPosForMyHead(this);
+            int minDist = Integer.MAX_VALUE;
+            for(Point sPoint: snakeThisMovePossibleLocationList.keySet()){
+                minDist = Math.min(minDist, getPointDistance(resPos, sPoint));
+            }
+
+            ArrayList<MoveWithState> list = groupByDistanceToOtherSneaks.get(minDist);
+            if(list == null){
+                list = new ArrayList<>();
+                groupByDistanceToOtherSneaks.put(minDist, list);
+            }
+            list.add(aMove);
+        }
+        bestList = groupByDistanceToOtherSneaks.lastEntry().getValue();
+
+        ///////////////////////////////////////////////////////////////////////
+
+if(turn >= Snake.debugTurn){
+    LOG.debug("HALT" + bestList);
+}
+
+
         // checking the default movement options from our initial implemented movement plan...
         // as fallback take the first entry from our list...
         if(mWrappedMode){
@@ -1969,7 +2003,11 @@ if(turn >= Snake.debugTurn){
             removeIgnoreOtherTargets = true;
         }
 
-        maxDept = Math.min(maxDept, (int) (myLen*1.4));
+        if(myLen < 10){
+            maxDept = myLen -1;
+        }else {
+            maxDept = Math.min(maxDept, (int) (myLen * 1.4));
+        }
 
         // do finally the filtering...
         ArrayList<MoveWithState> keepOnlyWithHighDeep = new ArrayList<>(possibleMoves);
@@ -1994,6 +2032,14 @@ if(turn >= Snake.debugTurn){
             int priIdx = possibleMoves.indexOf(priMove);
             if(priIdx > -1){
                 priMove = possibleMoves.get(priIdx);
+                if(priMove.state.sDeptTillTailCatch < myLen - 1){
+                    // gameId = "1ae7b557-0406-43ff-85ab-30a2a385a030";
+                    // Snake.debugTurn = 108;
+                    // we should ONLY Follow the primary or secondary food move, if the remaining free
+                    // space will be large enough for our BODY (handle "tailCatch" different in the
+                    // max dept calculation!)
+                    priMove = null;
+                }
             }else{
                 priMove = null;
             }
@@ -2001,6 +2047,9 @@ if(turn >= Snake.debugTurn){
             int secIdx = possibleMoves.indexOf(secMove);
             if(secIdx > -1){
                 secMove = possibleMoves.get(secIdx);
+                if(secMove.state.sDeptTillTailCatch < myLen - 1){
+                    secMove = null;
+                }
             }else{
                 secMove = null;
             }
@@ -2024,22 +2073,19 @@ if(turn >= Snake.debugTurn){
                 state = priMove.move;
                 return priMove;
             } else if(secMove != null){
-                // if we can catch our TAIL, then
-                if(turn > 250 && myHealth > 50){
-                    MoveWithState tailCatchMove = checkForCatchOwnTail(possibleMoves);
-                    if (tailCatchMove != null) return tailCatchMove;
-                }
-                // and only if we can't catch out tail. we make the second direction move...
                 state = secMove.move;
                 return secMove;
             }
         } else if(mFoodPrimaryDirection != -1) {
-            MoveWithState pMove = intMovesToMoveKeysMap.get(mFoodPrimaryDirection);
-            if (possibleMoves.contains(pMove)) {
-                return possibleMoves.get(possibleMoves.indexOf(pMove));
+            MoveWithState priMove = intMovesToMoveKeysMap.get(mFoodPrimaryDirection);
+            int priIdx = possibleMoves.indexOf(priMove);
+            if(priIdx > -1) {
+                priMove = possibleMoves.get(priIdx);
+                if (priMove.state.sDeptTillTailCatch >= myLen - 1) {
+                    return priMove;
+                }
             }
         }
-
         return null;
     }
 
