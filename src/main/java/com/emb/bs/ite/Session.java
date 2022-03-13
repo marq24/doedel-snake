@@ -62,6 +62,7 @@ public class Session {
     String LASTMOVE = null;
 
     Point myHead;
+    Point myNeck;
     Point myTail;
     int myLen;
     int myHealth;
@@ -73,8 +74,8 @@ public class Session {
     private boolean doomed = false;
     ArrayList<Point> snakeHeads = null;
     int[][] snakeBodies = null;
-    int[][] snakeNextMovePossibleLocations = null;
-    HashMap<Point, ArrayList<Integer>> snakeNextMovePossibleLocationList = null;
+    int[][] snakeThisMovePossibleLocations = null;
+    HashMap<Point, ArrayList<Integer>> snakeThisMovePossibleLocationList = null;
     int maxOtherSnakeLen = 0;
     int[][] myBody = null;
     int[][] hazardZone = null;
@@ -203,8 +204,8 @@ public class Session {
 
         snakeHeads = new ArrayList<>();
         snakeBodies = new int[Y][X];
-        snakeNextMovePossibleLocations = new int[Y][X];
-        snakeNextMovePossibleLocationList = new HashMap<>();
+        snakeThisMovePossibleLocations = new int[Y][X];
+        snakeThisMovePossibleLocationList = new HashMap<>();
         maxOtherSnakeLen = 0;
 
         myBody = new int[Y][X];
@@ -402,40 +403,46 @@ public class Session {
     }
 
     private int moveDirection(int move, RiskState risk) {
-        if(risk == null){
-            risk = new RiskState();
-        }else{
-            risk.next();
-        }
-        if (risk.endReached) {
-            return DOOMED;
-        } else if (risk.retry) {
-            //logState(moveAsString);
-            boolean canMove = false;
-
-            switch (move){
-                case UP:
-                    canMove = canMoveUp();
-                    break;
-                case RIGHT:
-                    canMove = canMoveRight();
-                    break;
-                case DOWN:
-                    canMove = canMoveDown();
-                    break;
-                case LEFT:
-                    canMove = canMoveLeft();
-                    break;
-            }
-            if (canMove) {
-                LOG.debug(getMoveIntAsString(move)+": YES");
-                return move;
+        // checkForOWN Neck...
+        Point resPos = getNewPointForDirection(myHead, move);
+        if(resPos.equals(myNeck)){
+            return UNKNOWN;
+        }else {
+            if(risk == null){
+                risk = new RiskState();
             }else{
-                LOG.debug(getMoveIntAsString(move)+": NO");
-                return moveDirection(move, risk);
+                risk.next();
             }
+            if (risk.endReached) {
+                return DOOMED;
+            } else if (risk.retry) {
+                //logState(moveAsString);
+                boolean canMove = false;
+
+                switch (move){
+                    case UP:
+                        canMove = canMoveUp();
+                        break;
+                    case RIGHT:
+                        canMove = canMoveRight();
+                        break;
+                    case DOWN:
+                        canMove = canMoveDown();
+                        break;
+                    case LEFT:
+                        canMove = canMoveLeft();
+                        break;
+                }
+                if (canMove) {
+                    LOG.debug(getMoveIntAsString(move)+": YES");
+                    return move;
+                }else{
+                    LOG.debug(getMoveIntAsString(move)+": NO");
+                    return moveDirection(move, risk);
+                }
+            }
+            return UNKNOWN;
         }
-        return UNKNOWN;
     }
 
     private int getAdvantage(){
@@ -828,7 +835,7 @@ if(turn >= Snake.debugTurn){
                                 finalMap[y][x] = 1;
                             } else if (snakeBodies[y][x] > 0) {
                                 finalMap[y][x] = 1;
-                            } else if (!ignoreOtherTargets && snakeNextMovePossibleLocations[y][x] > 0) {
+                            } else if (!ignoreOtherTargets && snakeThisMovePossibleLocations[y][x] > 0) {
                                 finalMap[y][x] = 1;
 
                                 /*int otherSnakeLen = snakeNextMovePossibleLocations[y][x];
@@ -911,7 +918,7 @@ if(turn >= Snake.debugTurn){
                     finalMap[y][x] = 1;
                 } else if (snakeBodies[y][x] > 0) {
                     finalMap[y][x] = 1;
-                } else if (!ignoreOtherTargets && snakeNextMovePossibleLocations[y][x] > 0) {
+                } else if (!ignoreOtherTargets && snakeThisMovePossibleLocations[y][x] > 0) {
                     finalMap[y][x] = 1;
                 }
             }
@@ -1057,7 +1064,7 @@ if(turn >= Snake.debugTurn){
                         && (enterBorderZone || !(newY == 0 || newY == Y-1 || myHead.x == 0 || myHead.x == X-1))
                         && (!escapeFromHazard || hazardZone[newY][myHead.x] == 0)
                         && (enterHazardZone || myHealth > 96 || hazardZone[newY][myHead.x] == 0)
-                        && (enterDangerZone || snakeNextMovePossibleLocations[newY][myHead.x] < myLen)
+                        && (enterDangerZone || snakeThisMovePossibleLocations[newY][myHead.x] < myLen)
                         && (enterNoGoZone || !willCreateLoop(UP, myHead, null,0));
             }
         } catch (IndexOutOfBoundsException e) {
@@ -1091,7 +1098,7 @@ if(turn >= Snake.debugTurn){
                         && (enterBorderZone || !(myHead.y == 0 || myHead.y == Y-1 || newX == 0 || newX == X-1))
                         && (!escapeFromHazard || hazardZone[myHead.y][newX] == 0)
                         && (enterHazardZone || myHealth > 96 || hazardZone[myHead.y][newX] == 0)
-                        && (enterDangerZone || snakeNextMovePossibleLocations[myHead.y][newX] < myLen)
+                        && (enterDangerZone || snakeThisMovePossibleLocations[myHead.y][newX] < myLen)
                         && (enterNoGoZone || !willCreateLoop(RIGHT, myHead, null, 0))
                         ;
             }
@@ -1126,7 +1133,7 @@ if(turn >= Snake.debugTurn){
                         && (enterBorderZone || !(newY == 0 || newY == Y-1 || myHead.x == 0 || myHead.x == X-1))
                         && (!escapeFromHazard || hazardZone[newY][myHead.x] == 0)
                         && (enterHazardZone || myHealth > 96 || hazardZone[newY][myHead.x] == 0)
-                        && (enterDangerZone || snakeNextMovePossibleLocations[newY][myHead.x] < myLen)
+                        && (enterDangerZone || snakeThisMovePossibleLocations[newY][myHead.x] < myLen)
                         && (enterNoGoZone || !willCreateLoop(DOWN, myHead, null, 0))
                         ;
             }
@@ -1161,7 +1168,7 @@ if(turn >= Snake.debugTurn){
                         && (enterBorderZone || !(myHead.y == 0 || myHead.y == Y-1 || newX == 0 || newX == X-1))
                         && (!escapeFromHazard || hazardZone[myHead.y][newX] == 0)
                         && (enterHazardZone || myHealth > 96 || hazardZone[myHead.y][newX] == 0)
-                        && (enterDangerZone || snakeNextMovePossibleLocations[myHead.y][newX] < myLen)
+                        && (enterDangerZone || snakeThisMovePossibleLocations[myHead.y][newX] < myLen)
                         && (enterNoGoZone || !willCreateLoop(LEFT, myHead, null, 0))
                         ;
             }
@@ -1233,7 +1240,7 @@ if(turn >= Snake.debugTurn){
                 } else {
                     boolean isHazard = hazardZone[y][x] > 0;
                     boolean isFoodPlace = foodPlaces.contains(new Point(y, x));
-                    if (snakeNextMovePossibleLocations[y][x] > 0) {
+                    if (snakeThisMovePossibleLocations[y][x] > 0) {
                         if (isFoodPlace) {
                             b.append('●');
                         } else {
@@ -1565,7 +1572,7 @@ if(turn >= Snake.debugTurn){
         for (MoveWithState aMove : possibleMoves) {
             Point resultingPos = aMove.getResPosForMyHead(this);
             // checking if we are under direct threat
-            int aMoveRisk = snakeNextMovePossibleLocations[resultingPos.y][resultingPos.x];
+            int aMoveRisk = snakeThisMovePossibleLocations[resultingPos.y][resultingPos.x];
             if(aMoveRisk > 0){
                 if(aMoveRisk < myLen){
                     aMoveRisk = 0;
@@ -1610,8 +1617,8 @@ if(turn >= Snake.debugTurn){
         boolean modifiedList = false;
         for(MoveWithState aMove: bestList){
             Point resPoint = aMove.getResPosForMyHead(this);
-            if(snakeNextMovePossibleLocationList.containsKey(resPoint)){
-                ArrayList<Integer> list = snakeNextMovePossibleLocationList.get(resPoint);
+            if(snakeThisMovePossibleLocationList.containsKey(resPoint)){
+                ArrayList<Integer> list = snakeThisMovePossibleLocationList.get(resPoint);
                 if(list.size() > 1){
                     noneDoubleTargets.remove(aMove);
                     modifiedList = true;
@@ -1830,7 +1837,7 @@ if(turn >= Snake.debugTurn){
                                 finalMap[y][x] = 1;
                             } else if (snakeBodies[y][x] > 0) {
                                 finalMap[y][x] = 1;
-                            } else if (snakeNextMovePossibleLocations[y][x] > 0) {
+                            } else if (snakeThisMovePossibleLocations[y][x] > 0) {
                                 finalMap[y][x] = 1;
                             }
                         }
