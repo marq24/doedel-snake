@@ -21,7 +21,7 @@ Basically, clone the repro, install Heroku CLI (or the Heroku npm CLI), create t
 
 ### Installing Heroku CLI
 
-See https://statics.teams.cdn.office.net/evergreen-assets/safelinks/1/atp-safelinks.html
+See https://devcenter.heroku.com/articles/heroku-cli
 
 #### Install npm Heroku cli
 
