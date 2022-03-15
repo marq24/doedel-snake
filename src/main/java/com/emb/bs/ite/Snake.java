@@ -64,8 +64,8 @@ public class Snake {
             }
             // my beta YELLOW
             //response.put("color", "#cccc33");
+            LOG.info("Found system provided port: {}", port +" using color: "+DOEDELCOLOR);
         }
-        LOG.info("Found system provided port: {}", port +" using color: "+DOEDELCOLOR);
         port(Integer.parseInt(port));
         get("/", HANDLER::process, JSON_MAPPER::writeValueAsString);
         post("/start", HANDLER::process, JSON_MAPPER::writeValueAsString);
