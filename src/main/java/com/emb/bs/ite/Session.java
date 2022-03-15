@@ -2004,7 +2004,7 @@ if(turn >= Snake.debugTurn){
         }
 
         if(myLen < 10){
-            maxDept = myLen -1;
+            maxDept = Math.min(maxDept, myLen -1);
         }else {
             maxDept = Math.min(maxDept, (int) (myLen * 1.4));
         }
