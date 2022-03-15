@@ -48,22 +48,25 @@ public class Snake {
             DOEDELCOLOR = "#FF1111";
             logBoard = true;
         } else {
-            LOG.info("Found system provided port: {}", port);
-            if(port.equals("9190")) {
+            if (port.equals("9190")) {
                 // BETA RED
                 logBoard = true;
                 DOEDELCOLOR = "#FF1111";
-            }else if(port.equals("9191")){
+            } else if (port.equals("9191")) {
                 // V1 Dark GREEN
                 DOEDELCOLOR = "#33cc33";
-            }else if(port.equals("9192")){
+            } else if (port.equals("9192")) {
                 // V2 pastel green - by nina
                 DOEDELCOLOR = "#3CFBA1";
-            }else if(port.equals("9193")) {
+            } else if (port.equals("9193")) {
                 // V3 Purple
                 DOEDELCOLOR = "#CC33CC";
             }
-        }        port(Integer.parseInt(port));
+            // my beta YELLOW
+            //response.put("color", "#cccc33");
+            LOG.info("Found system provided port: {}", port +" using color: "+DOEDELCOLOR);
+        }
+        port(Integer.parseInt(port));
         get("/", HANDLER::process, JSON_MAPPER::writeValueAsString);
         post("/start", HANDLER::process, JSON_MAPPER::writeValueAsString);
         post("/move", HANDLER::process, JSON_MAPPER::writeValueAsString);
@@ -125,19 +128,7 @@ public class Snake {
             Map<String, String> response = new HashMap<>();
             response.put("apiversion", "1");
             response.put("author", "marq24");
-            // release
-            //response.put("color", "#33cc33");
-            // beta
-
-            // pastel green (nina)
-            //response.put("color", "#3CFBA1");
-
-            // my beta YELLOW
-            //response.put("color", "#cccc33");
             response.put("color", DOEDELCOLOR);
-
-            //response.put("color", "#3333cc");
-            //response.put("color", "#FF1111");
             // https://play.battlesnake.com/references/customizations/
             response.put("head", "sand-worm"); // TODO: Personalize
             response.put("tail", "block-bum"); // TODO: Personalize
