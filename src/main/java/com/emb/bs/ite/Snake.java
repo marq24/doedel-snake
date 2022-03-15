@@ -43,23 +43,27 @@ public class Snake {
         String port = System.getProperty("PORT");
         if (port == null) {
             LOG.info("Using default port: {}", port);
-            port = "9191";
+            port = "9190";
             // RED@HOME
             DOEDELCOLOR = "#FF1111";
             logBoard = true;
         } else {
             LOG.info("Found system provided port: {}", port);
-            if(port.equals("9191")) {
+            if(port.equals("9190")) {
+                // BETA RED
                 logBoard = true;
                 DOEDELCOLOR = "#FF1111";
+            }else if(port.equals("9191")){
+                // V1 Dark GREEN
+                DOEDELCOLOR = "#33cc33";
             }else if(port.equals("9192")){
-                // pastel green - by nina
+                // V2 pastel green - by nina
                 DOEDELCOLOR = "#3CFBA1";
             }else if(port.equals("9193")) {
-                DOEDELCOLOR = "#33cc33";
+                // V3 Purple
+                DOEDELCOLOR = "#CC33CC";
             }
-        }
-        port(Integer.parseInt(port));
+        }        port(Integer.parseInt(port));
         get("/", HANDLER::process, JSON_MAPPER::writeValueAsString);
         post("/start", HANDLER::process, JSON_MAPPER::writeValueAsString);
         post("/move", HANDLER::process, JSON_MAPPER::writeValueAsString);
